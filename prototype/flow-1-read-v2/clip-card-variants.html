@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clip card — variants</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  body { display: block; height: auto; min-height: 100vh; overflow: auto; background: #111417; color: var(--text-primary); font-family: var(--font); padding: 32px 24px 64px; }
+  .page-head { max-width: 1040px; margin: 0 auto 24px; }
+  .page-head h1 { font: 600 22px/28px var(--font); margin: 0 0 6px; }
+  .page-head p { color: var(--text-secondary); margin: 0; font-size: 14px; line-height: 20px; max-width: 760px; }
+  .needs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 1040px; margin: 0 auto 32px; }
+  .needs div { background: #181c20; border: 1px solid #262b30; border-radius: 4px; padding: 12px 14px; font-size: 13px; line-height: 18px; color: var(--text-secondary); }
+  .needs b { display: block; color: var(--text-primary); font-weight: 500; margin-bottom: 4px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(500px, 100%), 1fr)); gap: 32px 28px; max-width: 1040px; margin: 0 auto; }
+  .variant h2 { font: 600 15px/20px var(--font); margin: 0 0 2px; }
+  .variant h2 .rec { color: var(--accent); font-weight: 500; font-size: 12px; margin-left: 6px; }
+  .variant .how { color: var(--text-muted); font-size: 12px; line-height: 16px; margin: 0 0 10px; }
+  .variant ul { margin: 10px 0 0; padding-left: 16px; color: var(--text-secondary); font-size: 12px; line-height: 17px; }
+  .variant li.minus { color: var(--text-muted); }
+
+  /* plugin frame (static) */
+  .frame { width: 480px; max-width: 100%; border: 1px solid #34383d; border-radius: 6px; overflow: visible; background: var(--bg); }
+  .frame .sona { width: 100%; height: auto; min-height: 0; resize: none; overflow: visible; padding-bottom: 12px; }
+  .dir-line { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-box); background: var(--surface-2); font-size: 13px; }
+  .dir-line::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .dir-line small { color: var(--text-muted); font-size: 11px; }
+  .measure { color: var(--text-muted); font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+
+  /* shared bits */
+  .lock { display: inline-flex; color: var(--actor); flex: none; }
+  .lock svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+  .who { color: var(--actor); font-weight: 600; font-size: var(--fs-meta); letter-spacing: .08em; flex: none; }
+  .line { color: var(--text-secondary); font-size: var(--fs-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .orig { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px 0 6px; flex: none; cursor: pointer;
+    background: none; border: 1px solid var(--border-subtle); border-radius: var(--radius-box); color: var(--text-secondary); font: 500 var(--fs-meta)/1 var(--font); }
+  .orig svg { width: 12px; height: 12px; fill: currentColor; }
+  .orig:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .orig--icon { width: 24px; padding: 0; justify-content: center; border-color: transparent; }
+  .orig--link { border: 0; padding: 0 2px; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+  .card { position: relative; border: 1px solid var(--border-subtle); background: var(--surface-1); border-radius: var(--radius-box); margin-bottom: var(--space-3); }
+  .row { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+
+  /* hover popover with the details the DAW already shows */
+  .pop { position: absolute; left: -1px; right: -1px; top: calc(100% + 4px); z-index: 5; display: none;
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-box); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    padding: 8px 12px; font-size: 12px; line-height: 17px; color: var(--text-secondary); }
+  .pop b { color: var(--text-primary); font-weight: 500; }
+  .pop .full { color: var(--text-primary); margin-bottom: 4px; }
+  .pop .note { display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--text-muted); }
+  .pop .note svg { width: 12px; height: 12px; fill: none; stroke: var(--actor); stroke-width: 1.5; }
+  .has-pop:hover .pop, .has-pop:focus-within .pop { display: block; }
+  .hint { position: absolute; right: 8px; top: -18px; font-size: 10px; color: var(--text-muted); letter-spacing: .04em; }
+
+  /* A — current */
+  .vA { padding: 6px var(--space-3); }
+  .vA .meta { color: var(--text-secondary); font-size: var(--fs-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+  .vA .text { margin: 2px 0 0 22px; color: var(--text-muted); font-size: var(--fs-meta); line-height: var(--lh-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* B — one line */
+  .vB { padding: 0 6px 0 var(--space-3); height: 34px; display: flex; align-items: center; }
+  .vB .row { width: 100%; }
+
+  /* C — the line leads */
+  .vC { padding: 8px var(--space-3); }
+  .vC .top { display: flex; align-items: center; gap: 8px; }
+  .vC .top .dur { color: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .vC .top .orig { margin-left: auto; }
+  .vC .text { margin-top: 4px; color: var(--text-primary); font-size: var(--fs-ui); line-height: var(--lh-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* D — no box */
+  .vD { border: 0; background: none; border-bottom: 1px solid var(--border-subtle); border-radius: 0; padding: 4px 0 8px; }
+
+  /* E — grows on hover */
+  .vE { padding: 0 6px 0 var(--space-3); }
+  .vE .row { height: 34px; }
+  .vE .more { max-height: 0; overflow: hidden; transition: max-height var(--dur-3) var(--ease); }
+  .vE:hover .more, .vE:focus-within .more { max-height: 40px; }
+  .vE .more p { margin: 0 0 8px 22px; font-size: 11px; line-height: 15px; color: var(--text-muted); }
+
+  /* ===== F — full screen, after the reference ===== */
+  .vF-wrap { grid-column: 1 / -1; }
+  .vF-frames { display: flex; flex-wrap: wrap; gap: 28px; }
+  .vF-frames figure { margin: 0; }
+  .vF-frames figcaption { color: var(--text-muted); font-size: 12px; margin-bottom: 8px; }
+  .fx { width: 480px; max-width: 100%; height: 360px; border: 1px solid #34383d; border-radius: 6px; background: var(--bg); overflow: visible;
+    display: flex; flex-direction: column; font-family: var(--font); font-size: var(--fs-ui); line-height: var(--lh-ui); color: var(--text-primary); position: relative; }
+  .fx .s-header { padding: 0 var(--space-4); }
+  /* line section: own surface, full bleed, no box */
+  .fx-line { position: relative; background: var(--surface-1); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);
+    padding: 10px var(--space-4) 12px; display: grid; grid-template-columns: 1fr auto; column-gap: var(--space-4); align-items: center; }
+  .fx-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; line-height: 14px; color: var(--text-muted); letter-spacing: .01em; white-space: nowrap; overflow: hidden; }
+  .fx-meta .lock svg { width: 12px; height: 12px; }
+  .fx-meta b { color: var(--actor); font-weight: 600; }
+  .fx-text { margin-top: 4px; font-size: 15px; line-height: 20px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .fx-orig { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: 0; cursor: pointer; color: var(--text-secondary); font: 500 10px/12px var(--font); letter-spacing: .04em; }
+  .fx-orig i { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-strong); display: grid; place-items: center; color: var(--text-primary); }
+  .fx-orig i svg { width: 12px; height: 12px; fill: currentColor; margin-left: 2px; }
+  .fx-orig:hover i { border-color: var(--text-secondary); }
+  .fx-line .pop { left: var(--space-4); right: var(--space-4); }
+  .fx-line:hover .pop { display: block; }
+  .fx-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: var(--space-4) var(--space-4) var(--space-3); gap: var(--space-3); }
+  /* direction: a real segmented control that reads as a sentence */
+  .fx-dir { display: flex; align-items: center; gap: var(--space-3); }
+  .fx-dir > span { color: var(--text-muted); font-size: var(--fs-meta); flex: none; }
+  .seg { flex: 1; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: 4px; }
+  .seg button { height: 26px; border: 0; border-radius: 3px; background: none; cursor: pointer; color: var(--text-secondary); font: 500 var(--fs-ui)/1 var(--font); }
+  .seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--border-strong); }
+  .fx-dir-cap { margin: -4px 0 0; padding-left: 58px; font-size: 11px; line-height: 14px; color: var(--text-muted); }
+  .fx-dir-cap b { color: var(--actor); font-weight: 500; }
+  /* ready */
+  .fx-ready { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .fx-recbtn { width: 56px; height: 56px; border-radius: 50%; border: 1px solid var(--border-strong); background: none; display: grid; place-items: center; cursor: pointer; box-shadow: 0 0 0 8px rgba(242,241,237,.03), 0 0 0 16px rgba(242,241,237,.02); }
+  .fx-recbtn::after { content: ""; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); }
+  .fx-recbtn:hover::after { transform: scale(1.15); }
+  .fx-ready .t { font-size: var(--fs-line); line-height: var(--lh-line); font-weight: 500; margin-top: 10px; }
+  .fx-ready .row2 { display: flex; align-items: center; gap: var(--space-4); color: var(--text-secondary); font-size: var(--fs-meta); }
+  .fx-ready .row2 .sep { width: 1px; height: 12px; background: var(--border-subtle); }
+  .fx-ready .row2 a { color: var(--text-secondary); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  /* takes */
+  .fx-takes-head { display: flex; align-items: center; gap: 6px; }
+  .fx-takes-head .lbl { color: var(--text-muted); font-size: var(--fs-meta); margin-right: 2px; }
+  .tk { min-width: 26px; height: 24px; padding: 0 6px; border: 1px solid var(--border-subtle); border-radius: var(--radius-box); background: none; color: var(--text-secondary); font: 500 var(--fs-ui)/1 var(--font); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .tk[aria-pressed="true"] { border-color: var(--accent); color: var(--text-primary); }
+  .tk svg { width: 10px; height: 10px; fill: none; stroke: var(--text-primary); stroke-width: 2; }
+  .tk-rec { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px 0 6px; border: 1px solid var(--border-subtle); border-radius: 12px; background: none; color: var(--text-secondary); font: 500 var(--fs-meta)/1 var(--font); cursor: pointer; }
+  .tk-rec::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .tk-rec:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .fx-take { display: grid; grid-template-columns: 36px 1fr auto; column-gap: var(--space-3); align-items: center; }
+  .fx-take .pl { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--actor); background: rgba(153,171,255,.08); display: grid; place-items: center; color: var(--actor); cursor: pointer; }
+  .fx-take .pl svg { width: 13px; height: 13px; fill: currentColor; margin-left: 2px; }
+  .fx-take canvas[data-wave="take"] { width: 100%; height: 48px; display: block; }
+  .fx-take .dur { color: var(--text-secondary); font-size: var(--fs-meta); font-variant-numeric: tabular-nums; }
+  .fx-read { grid-column: 2 / span 2; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .fx-read canvas { width: 70px; height: 14px; }
+  .fx-read button { background: none; border: 0; color: var(--text-muted); cursor: pointer; padding: 0; display: inline-flex; }
+  .fx-read button svg { width: 10px; height: 10px; fill: currentColor; }
+  .fx-status { display: flex; align-items: center; gap: 6px; font-size: var(--fs-ui); margin-top: auto; position: relative; }
+  .fx-status .ok { color: #7bd88f; }
+  .fx-status .info { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--text-muted); color: var(--text-muted); font: 600 9px/12px var(--font); text-align: center; cursor: help; }
+  .fx-status .pop { left: 0; right: auto; width: 300px; top: auto; bottom: calc(100% + 6px); }
+  .fx-status .info:hover + .pop { display: block; }
+  .fx-actions { display: flex; align-items: center; justify-content: space-between; }
+  .fx-actions .link { font-size: var(--fs-meta); }
+  .fx-split { display: inline-flex; }
+  .fx-split .btn { height: 30px; }
+  .fx-split .btn + .btn { border-left: 1px solid rgba(0,14,22,.35); border-radius: 0 2px 2px 0; padding: 0 10px; }
+  .fx-split .btn:first-child { border-radius: 2px 0 0 2px; }
+  .qa { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .qa div { background: #181c20; border: 1px solid #262b30; border-radius: 4px; padding: 10px 12px; font-size: 12px; line-height: 17px; color: var(--text-secondary); }
+  .qa b { display: block; color: var(--text-primary); font-weight: 500; margin-bottom: 3px; }
+  @media (max-width: 900px) { .qa { grid-template-columns: 1fr; } }
+
+  /* F · direction switch in the style of the reference (glass tray, dot on top, title, spaced caps),
+     on SONA brand: Inter Display, selected = Burn glow, idle dots in Diaslide */
+  .dirx { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 10px;
+    background: linear-gradient(180deg, rgba(242,241,237,.05), rgba(242,241,237,.02));
+    border: 1px solid rgba(242,241,237,.08); box-shadow: inset 0 1px 0 rgba(242,241,237,.04); }
+  .dirx__opt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 6px 8px;
+    border: 1px solid transparent; border-radius: 7px; background: none; cursor: pointer; font-family: var(--font);
+    transition: background var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
+  .dirx__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--sona-diaslide); opacity: .45; transition: all var(--dur-2) var(--ease); }
+  .dirx__opt b { font: 500 14px/18px var(--font); color: var(--text-secondary); letter-spacing: .005em; }
+  .dirx__opt small { font: 500 9px/12px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+  .dirx__opt:hover:not([aria-checked="true"]) { background: rgba(242,241,237,.03); }
+  .dirx__opt:hover:not([aria-checked="true"]) b { color: var(--text-primary); }
+  .dirx__opt[aria-checked="true"] {
+    border-color: rgba(255,69,25,.55);
+    background: radial-gradient(120% 90% at 50% 0%, rgba(255,69,25,.14), rgba(255,69,25,.03) 70%), rgba(242,241,237,.03);
+    box-shadow: 0 0 18px rgba(255,69,25,.18), inset 0 0 12px rgba(255,69,25,.08);
+  }
+  .dirx__opt[aria-checked="true"] .dirx__dot { background: var(--accent); opacity: 1; box-shadow: 0 0 8px 2px rgba(255,69,25,.55); }
+  .dirx__opt[aria-checked="true"] b { color: var(--text-primary); }
+  .dirx__opt[aria-checked="true"] small { color: var(--text-secondary); }
+  .dirx__opt:focus-visible { outline: 1px solid var(--focus-ring); outline-offset: 1px; }
+
+  /* F · play the original: no label; while it plays the button shows it (progress ring + stepped dots) */
+  .fx-orig { grid-row: 1 / span 2; grid-column: 2; position: relative; width: 34px; height: 34px; padding: 0; border: 0; background: none; cursor: pointer; color: var(--text-primary); display: grid; place-items: center; }
+  .fx-orig i { display: none; }
+  .fx-orig__ring { position: absolute; inset: 0; width: 34px; height: 34px; transform: rotate(-90deg); }
+  .fx-orig__ring circle { fill: none; stroke-width: 1.5; }
+  .fx-orig__ring .bg { stroke: var(--border-strong); }
+  .fx-orig__ring .fg { stroke: var(--actor); stroke-dasharray: 0 101; stroke-linecap: round; }
+  .fx-orig:hover .fx-orig__ring .bg { stroke: var(--text-secondary); }
+  .fx-orig__play { width: 12px; height: 12px; fill: currentColor; margin-left: 2px; }
+  .fx-orig__eq { display: none; gap: 3px; align-items: center; height: 14px; }
+  .fx-orig__eq i { display: block; width: 3px; border: 0; border-radius: 2px; background: var(--actor); animation: eq .9s steps(3, end) infinite; }
+  .fx-orig__eq i:nth-child(1) { animation-delay: -.3s; } .fx-orig__eq i:nth-child(2) { animation-delay: -.6s; }
+  @keyframes eq { 0% { height: 3px; } 33% { height: 13px; } 66% { height: 7px; } 100% { height: 3px; } }
+  .fx-orig.is-playing .fx-orig__play { display: none; }
+  .fx-orig.is-playing .fx-orig__eq { display: inline-flex; }
+  /* mini dot waveform inside the button (same dot system as the take strip, scaled down) */
+  .fx-orig__wave { display: none; width: 20px; height: 16px; }
+  .fx-orig.is-playing .fx-orig__wave { display: block; }
+  .fx-orig.is-playing:hover .fx-orig__wave { display: none; }
+  .fx-orig.is-playing .fx-orig__ring { display: none; }            /* no ring while playing: just the dots */
+  .fx-orig.is-playing:hover .fx-orig__ring { display: block; }      /* hover = stop button */
+  .fx-orig.is-playing:hover .fx-orig__ring .fg { display: none; }
+  .fx-orig.is-playing:hover .fx-orig__eq { display: none; }
+  .fx-orig.is-playing:hover::after { content: ""; width: 10px; height: 10px; border-radius: 1px; background: var(--actor); } /* hover while playing = stop */
+  /* the line fills in Sky as it plays */
+  [data-fill] { --p: 0%; }
+  .is-playing-line [data-fill] { background: linear-gradient(90deg, #ffffff calc(var(--p) - 4%), rgba(242,241,237,.42) calc(var(--p) + 4%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* reading effect: the line dims, and what has been said becomes bright white, with a soft edge */
+  /* full line on hover — only when it doesn't fit */
+  .fx-line .pop { display: none; }
+  .fx-line:hover .pop { display: none; }
+  .fx-line[data-trunc="true"] .fx-text { cursor: default; }
+  .fx-line[data-trunc="true"] .fx-text:hover ~ .fx-full { display: block; }
+  .fx-full { font-size: 14px; line-height: 20px; color: var(--text-primary); white-space: normal; }
+
+  /* F · direction cards v2: dot on the title line, short grey description, more air;
+     selected = neutral Offwhite (Burn stays for record + the main action). Burn kept as a comparison toggle. */
+  .dirx__opt { gap: 6px; padding: 9px 6px 10px; }
+  .dirx__title { display: inline-flex; align-items: center; gap: 8px; }
+  .dirx__opt small { font: 400 12px/16px var(--font); letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+  .dirx__opt[aria-checked="true"] {
+    border-color: rgba(242,241,237,.45);
+    background: radial-gradient(120% 100% at 50% 0%, rgba(242,241,237,.08), rgba(242,241,237,.02) 70%), rgba(242,241,237,.02);
+    box-shadow: 0 0 16px rgba(242,241,237,.05), inset 0 0 10px rgba(242,241,237,.03);
+  }
+  .dirx__opt[aria-checked="true"] .dirx__dot { background: var(--sona-offwhite); box-shadow: 0 0 6px 1px rgba(242,241,237,.45); }
+  .dirx__opt[aria-checked="true"] small { color: var(--text-secondary); }
+  /* comparison: the same cards with a Burn selection */
+  .sel-burn .dirx__opt[aria-checked="true"] {
+    border-color: rgba(255,69,25,.55);
+    background: radial-gradient(120% 90% at 50% 0%, rgba(255,69,25,.14), rgba(255,69,25,.03) 70%), rgba(242,241,237,.03);
+    box-shadow: 0 0 18px rgba(255,69,25,.18), inset 0 0 12px rgba(255,69,25,.08);
+  }
+  .sel-burn .dirx__opt[aria-checked="true"] .dirx__dot { background: var(--accent); box-shadow: 0 0 8px 2px rgba(255,69,25,.55); }
+  .cmp { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 12px; color: var(--text-muted); }
+  .cmp button { height: 24px; padding: 0 10px; border: 1px solid #34383d; border-radius: 12px; background: none; color: var(--text-secondary); font: 500 12px/1 var(--font); cursor: pointer; }
+  .cmp button[aria-pressed="true"] { border-color: var(--text-secondary); color: var(--text-primary); }
+
+  /* F · compact direction toggle with a sliding selection (micro-animation) */
+  .dirx { position: relative; gap: 4px; padding: 3px; border-radius: 8px; }
+  .dirx__opt { position: relative; z-index: 1; gap: 2px; padding: 5px 6px 6px; border-radius: 6px; }
+  .dirx__opt b { font: 500 13px/17px var(--font); transition: color var(--dur-3) var(--ease); }
+  .dirx__opt small { font: 400 11px/14px var(--font); transition: color var(--dur-3) var(--ease); }
+  .dirx__title { gap: 6px; }
+  .dirx__dot { width: 6px; height: 6px; }
+  /* the selected look now lives on one sliding element, not on the option */
+  .dirx__opt[aria-checked="true"], .sel-burn .dirx__opt[aria-checked="true"] { border-color: transparent; background: none; box-shadow: none; }
+  .dirx__glide {
+    position: absolute; z-index: 0; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 10px) / 2);
+    border: 1px solid rgba(242,241,237,.45); border-radius: 6px;
+    background: radial-gradient(120% 100% at 50% 0%, rgba(242,241,237,.08), rgba(242,241,237,.02) 70%), rgba(242,241,237,.02);
+    box-shadow: 0 0 14px rgba(242,241,237,.05), inset 0 0 8px rgba(242,241,237,.03);
+    transition: transform 260ms cubic-bezier(.3, .7, .2, 1);
+  }
+  .dirx[data-sel="1"] .dirx__glide { transform: translateX(calc(100% + 4px)); }
+  .sel-burn .dirx__glide { border-color: rgba(255,69,25,.55); background: radial-gradient(120% 90% at 50% 0%, rgba(255,69,25,.14), rgba(255,69,25,.03) 70%), rgba(242,241,237,.03); box-shadow: 0 0 16px rgba(255,69,25,.18), inset 0 0 10px rgba(255,69,25,.08); }
+  /* the dot lights up with a small pop */
+  .dirx__opt[aria-checked="true"] .dirx__dot { animation: dotpop 320ms cubic-bezier(.3, .7, .2, 1); }
+  @keyframes dotpop { 0% { transform: scale(.4); opacity: .4; } 60% { transform: scale(1.35); } 100% { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .dirx__glide { transition: none; } .dirx__opt[aria-checked="true"] .dirx__dot { animation: none; } }
+
+  /* F · glassy sliding selection: slower, eased, with a short stretch while it travels */
+  .dirx__glide {
+    transform: none; translate: 0 0;
+    transition: translate 460ms cubic-bezier(.22, 1, .36, 1);
+    border: 1px solid rgba(242,241,237,.22);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.04) 45%, rgba(255,255,255,.02) 100%),
+      rgba(242,241,237,.04);
+    -webkit-backdrop-filter: blur(10px) saturate(140%); backdrop-filter: blur(10px) saturate(140%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.28),      /* top highlight, like the edge of glass */
+      inset 0 -1px 0 rgba(0,0,0,.25),
+      inset 0 0 12px rgba(255,255,255,.04),
+      0 4px 14px rgba(0,0,0,.35),
+      0 0 18px rgba(242,241,237,.05);
+  }
+  .dirx[data-sel="1"] .dirx__glide { transform: none; translate: calc(100% + 4px) 0; }
+  .dirx__glide.is-moving { animation: glide-stretch 460ms cubic-bezier(.22, 1, .36, 1); }
+  @keyframes glide-stretch { 0% { scale: 1 1; } 35% { scale: 1.06 .94; } 100% { scale: 1 1; } }
+  /* a soft sheen passes over the glass as it lands */
+  .dirx__glide::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.10) 50%, transparent 70%); background-size: 250% 100%; background-position: 120% 0; opacity: 0; }
+  .dirx__glide.is-moving::after { animation: sheen 520ms ease-out; }
+  @keyframes sheen { 0% { background-position: 120% 0; opacity: 1; } 100% { background-position: -40% 0; opacity: 0; } }
+  .dirx__opt b, .dirx__opt small { transition: color 360ms ease 80ms; }
+  .sel-burn .dirx__glide { border-color: rgba(255,69,25,.5); background: linear-gradient(180deg, rgba(255,120,90,.18), rgba(255,69,25,.05) 60%), rgba(255,69,25,.04); }
+  @media (prefers-reduced-motion: reduce) { .dirx__glide { transition: none; } .dirx__glide.is-moving, .dirx__glide.is-moving::after { animation: none; } }
+
+  /* F · ready: smaller record control, "or" on its own line, then the file option */
+  .fx-recbtn { width: 46px; height: 46px; box-shadow: 0 0 0 7px rgba(242,241,237,.03), 0 0 0 14px rgba(242,241,237,.02); }
+  .fx-recbtn::after { width: 15px; height: 15px; transition: transform var(--dur-2) steps(2, end); }
+  .fx-ready .t { margin-top: 14px; }
+  .fx-ready .or { font-size: 11px; line-height: 14px; color: var(--text-muted); margin-top: 2px; }
+  .fx-ready .use-rec { font-size: var(--fs-meta); color: var(--text-secondary); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+  .fx-ready .use-rec:hover { color: var(--text-primary); }
+
+  /* F · takes row aligned with the brand guide: square boxes with thin lines (like the type specimen grid),
+     selection = brighter text and line, not Burn; Burn only on the record dot */
+  .fx-takes-head { gap: 6px; }
+  .tk { min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid var(--border-subtle); border-radius: 2px; background: none;
+    color: var(--text-muted); font: 400 13px/1 var(--font); font-variant-numeric: tabular-nums; transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease); }
+  .tk:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .tk[aria-pressed="true"] { border-color: rgba(242,241,237,.7); color: var(--text-primary); background: rgba(242,241,237,.05); }
+  .tk svg { width: 10px; height: 10px; stroke: var(--text-secondary); stroke-width: 1.6; }
+  .tk-rec { height: 28px; padding: 0 14px 0 12px; gap: 8px; border: 1px solid var(--border-subtle); border-radius: 2px;
+    color: var(--text-secondary); font: 400 12px/1 var(--font); letter-spacing: .01em; transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease); }
+  .tk-rec::before { width: 7px; height: 7px; }
+  .tk-rec:hover { color: var(--text-primary); border-color: var(--border-strong); }
+  .sel-burn .tk[aria-pressed="true"] { border-color: var(--accent); }
+
+  /* F · Record another as a Burn text action with a plus: same colour as the main button, no fill */
+  .tk-rec { color: var(--accent); border-color: transparent; padding: 0 10px 0 8px; gap: 6px; font-weight: 500; }
+  .tk-rec::before { content: none; }
+  .tk-rec svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+  .tk-rec:hover { color: var(--accent-hover); border-color: rgba(255,69,25,.35); background: rgba(255,69,25,.06); }
+
+  /* F · Record another: just the record dot + text, no outline; the text brightens on hover */
+  .tk-rec { color: var(--text-secondary); border: 0; background: none; padding: 0 4px; gap: 8px; font-weight: 400; transition: color var(--dur-2) var(--ease); }
+  .tk-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); transition: transform var(--dur-2) var(--ease), box-shadow var(--dur-2) var(--ease); }
+  .tk-rec:hover, .tk-rec:focus-visible { color: var(--text-primary); border: 0; background: none; outline: none; }
+  .tk-rec:hover::before, .tk-rec:focus-visible::before { transform: scale(1.2); box-shadow: 0 0 6px rgba(255,69,25,.5); }
+
+  /* F · the take's play button is the same component as the original's (grey ring, brighter on hover, Sky dots while playing) */
+  .fx-take { grid-template-columns: 34px 1fr auto; }
+  .fx-take .fx-orig { grid-row: auto; grid-column: 1; }
+
+  /* F · Record another: the record dot "breathes" — a slow, soft halo, like a standby lamp. Calm, not a call to action. */
+  .tk-rec::before { animation: rec-breathe 2.8s ease-out infinite; }
+  @keyframes rec-breathe {
+    0%   { box-shadow: 0 0 0 0 rgba(255,69,25,.45); }
+    55%  { box-shadow: 0 0 0 5px rgba(255,69,25,0); }
+    100% { box-shadow: 0 0 0 5px rgba(255,69,25,0); }
+  }
+  .tk-rec:hover::before, .tk-rec:focus-visible::before { animation-duration: 1.6s; }
+  @media (prefers-reduced-motion: reduce) { .tk-rec::before { animation: none; } }
+
+  /* F · take button: a plain play/pause — the waveform beside it already shows the playback */
+  .fx-orig__pause { display: none; width: 12px; height: 12px; fill: currentColor; }
+  .fx-orig--take.is-playing .fx-orig__ring { display: block; }
+  .fx-orig--take.is-playing .fx-orig__ring .bg { stroke: var(--text-secondary); }
+  .fx-orig--take.is-playing .fx-orig__pause { display: block; }
+  .fx-orig--take.is-playing:hover::after { content: none; }
+
+  /* ===== G — spacing, hierarchy and type scale on top of F ===== */
+  .fx--g { font-size: 13px; }
+  .fx--g .fx-line { padding: 12px var(--space-4); }
+  .fx--g .fx-meta { font-size: 11px; }
+  .fx--g .fx-text { margin-top: 6px; font-size: 15px; line-height: 20px; }
+  .fx--g .fx-body { padding: 16px var(--space-4) 10px; gap: 16px; }
+  /* quieter direction toggle: 44 px, faint tray, glass only on the selected one */
+  .fx--g .dirx { padding: 2px; border-color: rgba(242,241,237,.05); background: rgba(242,241,237,.015); box-shadow: none; }
+  .fx--g .dirx__opt { padding: 4px 6px 5px; gap: 1px; }
+  .fx--g .dirx__opt b { font-size: 13px; line-height: 17px; }
+  .fx--g .dirx__opt small { font-size: 11px; line-height: 14px; }
+  .fx--g .dirx__glide { top: 2px; bottom: 2px; left: 2px; width: calc((100% - 8px) / 2); }
+  /* the result: takes + player + status as one block, centred in the free space */
+  .fx--g .g-result { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+  .fx--g .fx-takes-head .lbl { font-size: 11px; }
+  .fx--g .tk { font-size: 13px; }
+  .fx--g .tk-rec { font-size: 13px; }
+  .fx--g .fx-take canvas[data-wave="take"] { height: 56px; }
+  .fx--g .fx-take .dur { font-size: 11px; }
+  .fx--g .fx-read { font-size: 11px; }
+  .fx--g .fx-status { margin-top: 0; font-size: 13px; }
+  .fx--g .fx-ready { flex: 1; }
+  .fx--g .fx-ready .t { font-size: 15px; line-height: 20px; margin-top: 16px; }
+  .fx--g .fx-ready .or { font-size: 11px; margin: 4px 0 0; }
+  .fx--g .fx-ready .use-rec { font-size: 13px; }
+  /* bottom row: the AI notice on the left, the actions on the right */
+  .fx--g .g-actions { display: flex; align-items: center; justify-content: space-between; min-height: 30px; }
+  .fx--g .g-foot { font-size: 11px; color: var(--text-disabled); cursor: help; }
+  .fx--g .g-right { display: inline-flex; align-items: center; gap: 12px; }
+  .fx--g .g-right .link { font-size: 13px; }
+  .fx--g .g-done { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 2px; font: 500 13px/1 var(--font); }
+  .fx--g .g-done svg { width: 12px; height: 12px; fill: none; stroke: var(--text-primary); stroke-width: 1.6; }
+  .fx--g .dirx__opt { padding: 3px 6px; } /* toggle at 44 px */
+  .fx--g .fx-line { padding: 10px var(--space-4); } .fx--g .fx-body { padding-bottom: 8px; } /* fits the applied state in 360 px */
+
+  /* G · host details live under ⓘ next to "✓ Applied" (no separate status line) */
+  .fx--g .g-applied { position: relative; display: inline-flex; align-items: center; gap: 8px; }
+  .fx--g .g-applied .info { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--text-muted); color: var(--text-muted);
+    font: 600 9px/12px var(--font); text-align: center; cursor: help; }
+  .fx--g .g-applied .info:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+  .fx--g .g-pop { display: none; position: absolute; right: 0; left: auto; top: auto; bottom: calc(100% + 8px); width: 280px; z-index: 6;
+    background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-box); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    padding: 8px 12px; font-size: 11px; line-height: 16px; color: var(--text-secondary); }
+  .fx--g .g-pop b { color: var(--text-primary); font-weight: 500; }
+  .fx--g .g-applied .info:hover + .g-pop, .fx--g .g-applied .info:focus + .g-pop { display: block; }
+</style>
+</head>
+<body>
+  <header class="page-head">
+    <h1>Картка кліпу — варіанти</h1>
+    <p>Верх плагіна в 480 px: картка кліпу і рядок напрямку під нею. Наведи курсор на картку, щоб побачити, що ховається. «▶ Original» скрізь клікабельна для вигляду, звук не грає.</p>
+  </header>
+
+  <section class="needs" aria-label="Що з картки потрібно">
+    <div><b>Завжди на виду</b>Хто говорить (ANNA, Sky) — «чий голос». Сам текст репліки — щоб упевнитись, що вибрано той кліп. «▶ Original» — головне порівняння.</div>
+    <div><b>Можна на ховер</b>Назва кліпу і таймкод — їх і так видно в DAW на виділеному кліпі. Пояснення замка «оригінал не перезапишеться» — потрібне раз, а не на кожній репліці.</div>
+    <div><b>Довжина 2.7 s</b>Потрібна, коли записуєш. У v2 вона вже є в таймері запису «2.1 s / 2.7 s original» і в мітці на вейвформі, тож у картці може бути дрібно або на ховер.</div>
+  </section>
+
+  <div class="grid">
+
+    <!-- A -->
+    <article class="variant">
+      <h2>A · Зараз (v2)</h2>
+      <p class="how">Два рядки, усе видно одразу.</p>
+      <div class="frame"><div class="sona">
+        <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+        <div class="card vA">
+          <div class="row"><span class="lock" title="Original clip — never overwritten"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><span class="who">ANNA</span><span class="meta">SC12_harbour_T3 · 01:02:14:08 · 2.7 s</span><button class="orig"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Original</button></div>
+          <p class="text">“We have to leave before the storm reaches the coast.”</p>
+        </div>
+        <div class="dir-line">Change how it’s said <small>Anna’s voice · your intonation</small></div>
+      </div></div>
+      <p class="measure">Висота картки: ~56 px</p>
+      <ul><li class="minus">Назва кліпу й таймкод дублюють DAW і забирають рядок.</li><li class="minus">Текст репліки — найважливіше — найблідіший.</li></ul>
+    </article>
+
+    <!-- B -->
+    <article class="variant">
+      <h2>B · Один рядок, деталі на ховер <span class="rec">рекомендую</span></h2>
+      <p class="how">ANNA + текст репліки + «▶ Original». Назва, таймкод, довжина і пояснення замка — у підказці при наведенні.</p>
+      <div class="frame"><div class="sona">
+        <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+        <div class="card vB has-pop" tabindex="0">
+          <span class="hint">hover</span>
+          <div class="row"><span class="lock"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><span class="who">ANNA</span><span class="line">“We have to leave before the storm reaches the coast.”</span><button class="orig"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Original</button></div>
+          <div class="pop"><div class="full">“We have to leave before the storm reaches the coast.”</div><b>SC12_harbour_T3</b> · 01:02:14:08 · 2.7 s<div class="note"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>The original clip. SONA never overwrites it.</div></div>
+        </div>
+        <div class="dir-line">Change how it’s said <small>Anna’s voice · your intonation</small></div>
+      </div></div>
+      <p class="measure">Висота картки: ~34 px (−22 px)</p>
+      <ul><li>Видно головне: хто і що говорить, як послухати оригінал.</li><li>Довга репліка обрізається «…», повна — у підказці.</li><li class="minus">Таймкод не видно без наведення (є в DAW).</li></ul>
+    </article>
+
+    <!-- C -->
+    <article class="variant">
+      <h2>C · Репліка головна</h2>
+      <p class="how">Зверху дрібно «ANNA · 2.7 s», під ним текст репліки великим і світлим. Назва й таймкод — на ховер.</p>
+      <div class="frame"><div class="sona">
+        <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+        <div class="card vC has-pop" tabindex="0">
+          <span class="hint">hover</span>
+          <div class="top"><span class="lock"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><span class="who">ANNA</span><span class="dur">2.7 s</span><button class="orig"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Original</button></div>
+          <div class="text">“We have to leave before the storm reaches the coast.”</div>
+          <div class="pop"><b>SC12_harbour_T3</b> · 01:02:14:08<div class="note"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>The original clip. SONA never overwrites it.</div></div>
+        </div>
+        <div class="dir-line">Change how it’s said <small>Anna’s voice · your intonation</small></div>
+      </div></div>
+      <p class="measure">Висота картки: ~64 px</p>
+      <ul><li>Найзрозуміліше, яку репліку правимо: текст — найпомітніший.</li><li>Довжина лишається на виду для запису.</li><li class="minus">Не економить висоту.</li></ul>
+    </article>
+
+    <!-- D -->
+    <article class="variant">
+      <h2>D · Без рамки</h2>
+      <p class="how">Як B, але без картки: рядок під хедером з тонкою лінією знизу. «Original» — текстове посилання.</p>
+      <div class="frame"><div class="sona">
+        <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+        <div class="card vD has-pop" tabindex="0">
+          <span class="hint">hover</span>
+          <div class="row"><span class="lock"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><span class="who">ANNA</span><span class="line">“We have to leave before the storm reaches the coast.”</span><button class="orig orig--link"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Original</button></div>
+          <div class="pop"><div class="full">“We have to leave before the storm reaches the coast.”</div><b>SC12_harbour_T3</b> · 01:02:14:08 · 2.7 s<div class="note"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>The original clip. SONA never overwrites it.</div></div>
+        </div>
+        <div class="dir-line">Change how it’s said <small>Anna’s voice · your intonation</small></div>
+      </div></div>
+      <p class="measure">Висота: ~37 px, без рамки — найлегший</p>
+      <ul><li>Найменше «коробок» на екрані.</li><li class="minus">Кліп менше відчувається як окремий заблокований об’єкт.</li><li class="minus">Посилання в бренді — для третинних дій, а Original — часта дія.</li></ul>
+    </article>
+
+    <!-- E -->
+    <article class="variant">
+      <h2>E · Розкривається при наведенні</h2>
+      <p class="how">Як B, але без спливної підказки: при наведенні картка сама стає вищою і показує другий рядок з деталями.</p>
+      <div class="frame"><div class="sona">
+        <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+        <div class="card vE" tabindex="0">
+          <span class="hint">hover</span>
+          <div class="row"><span class="lock"><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><span class="who">ANNA</span><span class="line">“We have to leave before the storm reaches the coast.”</span><button class="orig"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg>Original</button></div>
+          <div class="more"><p>SC12_harbour_T3 · 01:02:14:08 · 2.7 s · original, never overwritten</p></div>
+        </div>
+        <div class="dir-line">Change how it’s said <small>Anna’s voice · your intonation</small></div>
+      </div></div>
+      <p class="measure">Висота: ~36 px, на ховер ~58 px</p>
+      <ul><li>Деталі з’являються на своєму місці, нічого не перекривають.</li><li class="minus">Решта екрана «стрибає» вниз при наведенні — у маленькому вікні це дратує.</li></ul>
+    </article>
+
+    <!-- F -->
+    <article class="variant vF-wrap">
+      <h2>F · Секція репліки без рамки + сегментний перемикач + дубль головний <span class="rec">новий, за референсом</span></h2>
+      <p class="how">Репліка — окрема секція на всю ширину іншим фоном з лініями зверху й знизу. Дрібно: замок, ANNA, 2.7 s, назва. Більшим: текст репліки, довгий обрізається «…», повний — на ховер. Праворуч кругла ▶ без підпису: під час програвання кнопка показує, що грає (кільце прогресу і крапки), а текст репліки зафарбовується кольором Sky. Повний текст — на ховер по тексту, лише якщо він обрізаний. Нижче перемикач у стилі референсу: «лоток» зі скла, у кожному варіанті крапка в рядку з назвою і короткий сірий опис; вибраний — світла рамка (Offwhite). Наведи на секцію репліки та на ⓘ у статусі.</p>
+      <div class="cmp">Колір вибраного напрямку: <button aria-pressed="true" data-sel="neutral">Offwhite (рекомендую)</button><button aria-pressed="false" data-sel="burn">Burn</button></div>
+      <div class="vF-frames">
+        <figure><figcaption>До запису</figcaption>
+          <div class="fx">
+            <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+            <section class="fx-line">
+            <div class="fx-meta"><span class="lock" title="The original clip. SONA never overwrites it."><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><b>ANNA</b> · 2.7 s · <span title="SC12_harbour_T3 · 01:02:14:08">SC12_harbour_T3</span></div>
+            <div class="fx-text" data-fill>We have to leave before the storm reaches the coast, before it’s too late for any of us.</div>
+            <button class="fx-orig" aria-label="Play the original" title="Play the original">
+              <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+              <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+              <canvas class="fx-orig__wave" aria-hidden="true"></canvas>
+            </button>
+            <div class="pop fx-full"><span data-fill>“We have to leave before the storm reaches the coast, before it’s too late for any of us.”</span></div>
+          </section>
+            <div class="fx-body">
+              <div class="dirx" role="radiogroup" aria-label="What to change" data-sel="0">
+              <span class="dirx__glide" aria-hidden="true"></span>
+              <button class="dirx__opt" role="radio" aria-checked="true"><span class="dirx__title"><i class="dirx__dot"></i><b>Change how it’s said</b></span><small>your intonation</small></button>
+              <button class="dirx__opt" role="radio" aria-checked="false"><span class="dirx__title"><i class="dirx__dot"></i><b>Change who says it</b></span><small>another voice</small></button>
+            </div>
+              <div class="fx-ready">
+                <button class="fx-recbtn" title="Record your read (R)" aria-label="Record your read"></button>
+                <span class="t">Record your read</span>
+                <span class="or">or</span>
+                <a class="use-rec">Use a recording</a>
+              </div>
+            </div>
+          </div>
+        </figure>
+        <figure><figcaption>Дубль застосовано</figcaption>
+          <div class="fx">
+            <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+            <section class="fx-line">
+            <div class="fx-meta"><span class="lock" title="The original clip. SONA never overwrites it."><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><b>ANNA</b> · 2.7 s · <span title="SC12_harbour_T3 · 01:02:14:08">SC12_harbour_T3</span></div>
+            <div class="fx-text" data-fill>We have to leave before the storm reaches the coast, before it’s too late for any of us.</div>
+            <button class="fx-orig" aria-label="Play the original" title="Play the original">
+              <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+              <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+              <canvas class="fx-orig__wave" aria-hidden="true"></canvas>
+            </button>
+            <div class="pop fx-full"><span data-fill>“We have to leave before the storm reaches the coast, before it’s too late for any of us.”</span></div>
+          </section>
+            <div class="fx-body">
+              <div class="dirx" role="radiogroup" aria-label="What to change" data-sel="0">
+              <span class="dirx__glide" aria-hidden="true"></span>
+              <button class="dirx__opt" role="radio" aria-checked="true"><span class="dirx__title"><i class="dirx__dot"></i><b>Change how it’s said</b></span><small>your intonation</small></button>
+              <button class="dirx__opt" role="radio" aria-checked="false"><span class="dirx__title"><i class="dirx__dot"></i><b>Change who says it</b></span><small>another voice</small></button>
+            </div>
+              <div class="fx-takes-head"><span class="lbl">Take</span><button class="tk" aria-pressed="false">1</button><button class="tk" aria-pressed="true">2 <svg viewBox="0 0 12 12"><path d="M2.5 6.5 5 9l4.5-6"/></svg></button><button class="tk-rec" title="Record another read (R)">Record another</button></div>
+              <div class="fx-take">
+                <button class="fx-orig fx-orig--take" aria-label="Play take 2" title="Play take 2">
+                  <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+                  <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+                  <svg class="fx-orig__pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z"/></svg>
+                </button>
+                <canvas data-wave="take"></canvas>
+                <span class="dur">3.0 s</span>
+                <div class="fx-read"><span>from your read · 2.9 s</span><canvas data-wave="read"></canvas><button title="Play your read"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg></button></div>
+              </div>
+              <div class="fx-status"><span class="ok">✓</span> Clip plays take 2 <span class="info" tabindex="0">i</span><div class="pop">Original kept, take not printed yet.<br>Print it in Nuendo: <b>Audio › Make Extension Permanent</b>.</div></div>
+              <div class="fx-actions"><button class="link">Undo</button><span class="fx-split"><button class="btn btn--primary">Next clip →</button></span></div>
+            </div>
+          </div>
+        </figure>
+      </div>
+      <div class="qa">
+        <div><b>Що підсвічувати: дубль чи твій запис?</b>Дубль. Монтажер оцінює результат і порівнює його з оригіналом. Твій запис — лише вхід, тому він маленький і сірий під дублем («from your read · 2.9 s ▶»). Великим запис показуємо лише коли з ним щось не так (немає мови, довжина сильно інша).</div>
+        <div><b>Перемикач напрямку</b>За референсом: напівпрозорий «лоток», у кожному варіанті крапка, назва і підпис капслоком з розрядкою. Крапка в одному рядку з назвою, під нею коротко сірим: «your intonation» / «another voice». Вибраний — тонка світла рамка і м’яке світіння Offwhite, а не Burn: Burn у бренді означає «гаряче / дія» (запис, головна кнопка). Порівняти можна перемикачем над прототипом.</div>
+        <div><b>Дублі і Record another за бренд-гайдом</b>У гайді UI-елементи — прямі прямокутники з тонкими лініями (сітка шрифту, плитки Pitch / Speech Rate), а активне від неактивного відрізняє яскравість тексту (Original сірим, Translation темним). Тому дублі — квадратні клітинки, вибраний світліший, без Burn. Record another — такий самий прямокутник, тонший текст, більше повітря; Burn лише на крапці запису.</div>
+      </div>
+    </article>
+
+    <!-- G -->
+    <article class="variant vF-wrap vG-wrap">
+      <h2>G · F з покращеними відступами та ієрархією <span class="rec">порівняй з F</span></h2>
+      <p class="how">Один ритм відступів: 16 px між блоками, 8 px усередині. Три розміри шрифту: 15 / 13 / 11. Перемикач легший (44 px, склянистий лише вибраний). Номери дублів і програвач — один блок «результат», він по центру вільного місця, вейвформа 56 px. «AI-generated» — в одному рядку з кнопками.</p>
+      <div class="vF-frames">
+        <figure><figcaption>До запису</figcaption>
+          <div class="fx fx--g">
+            <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+            <section class="fx-line">
+            <div class="fx-meta"><span class="lock" title="The original clip. SONA never overwrites it."><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><b>ANNA</b> · 2.7 s · <span title="SC12_harbour_T3 · 01:02:14:08">SC12_harbour_T3</span></div>
+            <div class="fx-text" data-fill>We have to leave before the storm reaches the coast, before it’s too late for any of us.</div>
+            <button class="fx-orig" aria-label="Play the original" title="Play the original">
+              <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+              <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+              <canvas class="fx-orig__wave" aria-hidden="true"></canvas>
+            </button>
+            <div class="pop fx-full"><span data-fill>“We have to leave before the storm reaches the coast, before it’s too late for any of us.”</span></div>
+          </section>
+            <div class="fx-body">
+              <div class="dirx" role="radiogroup" aria-label="What to change" data-sel="0">
+              <span class="dirx__glide" aria-hidden="true"></span>
+              <button class="dirx__opt" role="radio" aria-checked="true"><span class="dirx__title"><i class="dirx__dot"></i><b>Change how it’s said</b></span><small>your intonation</small></button>
+              <button class="dirx__opt" role="radio" aria-checked="false"><span class="dirx__title"><i class="dirx__dot"></i><b>Change who says it</b></span><small>another voice</small></button>
+            </div>
+              <div class="fx-ready">
+                <button class="fx-recbtn" title="Record your read (R)" aria-label="Record your read"></button>
+                <span class="t">Record your read</span>
+                <span class="or">or</span>
+                <a class="use-rec">Use a recording</a>
+              </div>
+              <div class="g-actions"><span class="g-foot" title="Results are AI generated. Please ensure human review prior to external use. Every take carries a SONA Verify watermark.">AI-generated · SONA Verify</span></div>
+            </div>
+          </div>
+        </figure>
+        <figure><figcaption>Дубль застосовано</figcaption>
+          <div class="fx fx--g">
+            <header class="s-header"><div class="s-brand"><img src="assets/logo/SONA_Bildmarke_Light.svg" alt="" class="s-brand__mark"><span class="s-brand__name">Read</span></div><nav class="s-header__links"><span class="link">help</span><span class="link">settings</span></nav></header>
+            <section class="fx-line">
+            <div class="fx-meta"><span class="lock" title="The original clip. SONA never overwrites it."><svg viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span><b>ANNA</b> · 2.7 s · <span title="SC12_harbour_T3 · 01:02:14:08">SC12_harbour_T3</span></div>
+            <div class="fx-text" data-fill>We have to leave before the storm reaches the coast, before it’s too late for any of us.</div>
+            <button class="fx-orig" aria-label="Play the original" title="Play the original">
+              <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+              <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+              <canvas class="fx-orig__wave" aria-hidden="true"></canvas>
+            </button>
+            <div class="pop fx-full"><span data-fill>“We have to leave before the storm reaches the coast, before it’s too late for any of us.”</span></div>
+          </section>
+            <div class="fx-body">
+              <div class="dirx" role="radiogroup" aria-label="What to change" data-sel="0">
+              <span class="dirx__glide" aria-hidden="true"></span>
+              <button class="dirx__opt" role="radio" aria-checked="true"><span class="dirx__title"><i class="dirx__dot"></i><b>Change how it’s said</b></span><small>your intonation</small></button>
+              <button class="dirx__opt" role="radio" aria-checked="false"><span class="dirx__title"><i class="dirx__dot"></i><b>Change who says it</b></span><small>another voice</small></button>
+            </div>
+              <div class="g-result">
+                <div class="fx-takes-head"><span class="lbl">Take</span><button class="tk" aria-pressed="false">1</button><button class="tk" aria-pressed="true">2 <svg viewBox="0 0 12 12"><path d="M2.5 6.5 5 9l4.5-6"/></svg></button><button class="tk-rec" title="Record another read (R)">Record another</button></div>
+                <div class="fx-take">
+                <button class="fx-orig fx-orig--take" aria-label="Play take 2" title="Play take 2">
+                  <svg class="fx-orig__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16" class="bg"/></svg>
+                  <svg class="fx-orig__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+                  <svg class="fx-orig__pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3.5h2.5v9H4.5zM9 3.5h2.5v9H9z"/></svg>
+                </button>
+                <canvas data-wave="take"></canvas>
+                <span class="dur">3.0 s</span>
+                <div class="fx-read"><span>from your read · 2.9 s</span><canvas data-wave="read"></canvas><button title="Play your read"><svg viewBox="0 0 16 16"><path d="M5 3.5v9l7-4.5z"/></svg></button></div>
+              </div>
+              </div>
+              <div class="g-actions"><span class="g-foot" title="Results are AI generated. Please ensure human review prior to external use. Every take carries a SONA Verify watermark.">AI-generated · SONA Verify</span><span class="g-right"><button class="link">Change take</button><span class="g-applied"><span class="info" tabindex="0" aria-label="What happened in Nuendo">i</span><span class="pop g-pop"><b>Clip plays take 2</b> · not printed yet<br>The original is kept. Print it in Nuendo: <b>Audio › Make Extension Permanent</b></span><button class="btn g-done"><svg viewBox="0 0 12 12"><path d="M2.5 6.5 5 9l4.5-6"/></svg>Applied</button></span></span></div>
+            </div>
+          </div>
+        </figure>
+      </div>
+      <div class="qa">
+        <div><b>Ритм і розміри</b>Між реплікою, перемикачем, результатом і кнопками — 16 px, усередині блоку — 8 px. Текст репліки 15, основний UI 13, мета й підписи 11. Більше ніяких 10/12/14.</div>
+        <div><b>Ієрархія</b>Репліка → результат → дія. Перемикач напрямку тихіший: 44 px, лоток ледь видний, склянистість лише на вибраному. Результат (номери + програвач) зібраний в один блок по центру вільного місця.</div>
+        <div><b>Низ</b>«AI-generated · SONA Verify» — у рядку з кнопками, ліворуч; «Change take» — посиланням поруч із «✓ Applied». Окремого рядка статусу немає: що сталося в цьому хості (Nuendo: грає дубль, ще не надрукований) — під ⓘ біля «✓ Applied». Окремий рядок з’являється лише коли треба діяти (напр. дубль довший за кліп).</div>
+      </div>
+    </article>
+
+  </div>
+<script>
+  const css = getComputedStyle(document.documentElement);
+  const SKY = css.getPropertyValue('--sona-sky').trim();
+  // dot waveform levels for the mock (brand dot system), generated once per canvas so redraws match
+  function makeLevels(cols, seed, half) {
+    let x = seed; const rnd = () => (x = (x * 9301 + 49297) % 233280) / 233280;
+    return Array.from({ length: cols }, (_, c) => {
+      const env = Math.sin(Math.PI * (c + 1) / (cols + 1)) ** 0.6, gap = (c % 11 === 7) ? 0.1 : 1;
+      return Math.max(0, Math.round(env * gap * (0.35 + rnd() * 0.65) * half));
+    });
+  }
+  // progress: null = at rest; 0..1 = playing. Rest is a muted Sky; what has played turns full Sky (like the brand mock, p. 24)
+  function drawWave(cv, color, seed, rows, progress = null, rest = 1) {
+    const dpr = devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight; if (!w) return;
+    if (cv.width !== Math.round(w * dpr)) { cv.width = w * dpr; cv.height = h * dpr; }
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.fillStyle = color;
+    const pitch = rows > 2 ? 6 : 4, d = rows > 2 ? 3 : 2, cols = Math.floor(w / pitch);
+    cv._lv ||= makeLevels(cols, seed, rows);
+    cv._lv.forEach((lvl, c) => {
+      const played = progress !== null && (c + 0.5) / cols <= progress;
+      g.globalAlpha = progress === null ? rest : played ? 1 : rest;
+      for (let r = -lvl; r <= lvl; r++) { g.beginPath(); g.arc(c * pitch + pitch / 2, h / 2 + r * pitch, d / 2, 0, Math.PI * 2); g.fill(); }
+    });
+    g.globalAlpha = 1;
+  }
+  const TAKE_REST = 0.4;
+  document.querySelectorAll('canvas[data-wave="take"]').forEach((c) => drawWave(c, SKY, 7, 3, null, TAKE_REST));
+  document.querySelectorAll('canvas[data-wave="read"]').forEach((c) => drawWave(c, '#8e9192', 3, 1));
+  // segmented control: toggle + caption
+  document.querySelectorAll('.cmp button').forEach((b) => b.onclick = () => {
+    document.querySelectorAll('.cmp button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    document.querySelector('.vF-wrap').classList.toggle('sel-burn', b.dataset.sel === 'burn');
+  });
+  document.querySelectorAll('.dirx').forEach((g) => {
+    const opts = [...g.querySelectorAll('.dirx__opt')];
+    opts.forEach((b, i) => b.onclick = () => {
+      if (b.getAttribute('aria-checked') === 'true') return;
+      opts.forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+      g.dataset.sel = String(i); // the selection slides to the new option
+      const gl = g.querySelector('.dirx__glide');
+      gl.classList.remove('is-moving'); void gl.offsetWidth; gl.classList.add('is-moving'); // replay the stretch + sheen
+    });
+  });
+
+  // One play component for the original and the take: grey ring + ▶; while playing, Sky dots that follow the voice.
+  let current = null; // only one thing plays at a time
+  function wirePlay(btn, url, label, onProgress, onStop) {
+    let audio = null, timer = 0, an = null, last = 0, levels = [0, 0, 0, 0, 0];
+    const wave = btn.querySelector('.fx-orig__wave');
+    const drawMini = () => { // 5 columns × up to 5 dots, 2 px dots on a 4 px pitch
+      const dpr = devicePixelRatio || 1, w = 20, h = 16;
+      if (wave && wave.width !== w * dpr) { wave.width = w * dpr; wave.height = h * dpr; }
+      if (!wave) return; // the take's button has no mini dots
+      const g = wave.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h); g.fillStyle = SKY;
+      levels.forEach((lv, c) => { for (let r = -lv; r <= lv; r++) { g.beginPath(); g.arc(2 + c * 4, h / 2 + r * 3.5, 1, 0, Math.PI * 2); g.fill(); } });
+    };
+    const stop = () => {
+      clearInterval(timer); audio && audio.pause(); audio = null; levels = [0, 0, 0, 0, 0];
+      btn.classList.remove('is-playing'); btn.setAttribute('aria-label', label); btn.title = label;
+      if (current && current.btn === btn) current = null;
+      onStop && onStop();
+    };
+    // The take's button is a real pause: it keeps the position and resumes from it
+    const pause = () => { clearInterval(timer); audio.pause(); btn.classList.remove('is-playing'); btn.setAttribute('aria-label', label); btn.title = label; };
+    const resume = () => { audio.play().catch(() => {}); btn.classList.add('is-playing'); btn.setAttribute('aria-label', 'Pause'); btn.title = 'Pause'; timer = setInterval(tick, 30); };
+    let tick = () => {};
+    btn.onclick = () => {
+      if (audio && !wave) return audio.paused ? (current && current.btn !== btn && current.stop(), current = { btn, stop }, resume()) : pause();
+      if (audio) return stop();
+      if (current) current.stop();
+      current = { btn, stop };
+      audio = new Audio(url);
+      try { // real level from the audio, so the dots move with the voice
+        window.__ac ||= new (window.AudioContext || window.webkitAudioContext)();
+        const ac = window.__ac; ac.resume();
+        an = ac.createAnalyser(); an.fftSize = 256; an.smoothingTimeConstant = 0.6;
+        ac.createMediaElementSource(audio).connect(an); an.connect(ac.destination);
+      } catch (e) { an = null; }
+      audio.play().catch(() => {});
+      const stopWord = wave ? 'Stop' : 'Pause';
+      btn.classList.add('is-playing'); btn.setAttribute('aria-label', stopWord); btn.title = stopWord;
+      audio.onended = stop;
+      tick = () => {
+        if (!audio) return;
+        onProgress && onProgress(audio.duration ? audio.currentTime / audio.duration : 0);
+        const now = performance.now();
+        if (now - last > 140) { // calm steps (~7 per second), one dot up or down per step
+          last = now;
+          let target = [0, 0, 0, 0, 0];
+          if (an) {
+            const td = new Uint8Array(an.fftSize); an.getByteTimeDomainData(td);
+            let sum = 0; for (const v of td) sum += ((v - 128) / 128) ** 2;
+            const L = Math.min(1, Math.sqrt(sum / td.length) * 5), j = () => (Math.random() - 0.5) * 0.3;
+            const lv = (k) => Math.max(0, Math.min(2, Math.round(L * k + j())));
+            target = [lv(0.9), lv(1.8), lv(2.6), lv(1.8), lv(0.9)];
+          } else target = levels.map(() => Math.floor(Math.random() * 3));
+          levels = levels.map((v, i) => v + Math.sign(target[i] - v));
+          drawMini();
+        }
+      };
+      tick(); timer = setInterval(tick, 30); // a timer, not rAF: steady, and keeps going in a background window
+    };
+  }
+
+  // The original: the line reads itself (dim → bright white); full line on hover only when it doesn't fit
+  document.querySelectorAll('.fx-line').forEach((sec) => {
+    const t = sec.querySelector('.fx-text');
+    sec.dataset.trunc = String(t.scrollWidth > t.clientWidth);
+    const fills = sec.querySelectorAll('[data-fill]');
+    wirePlay(sec.querySelector('.fx-orig'), 'assets/audio/anna-original.wav', 'Play the original',
+      (p) => { sec.classList.add('is-playing-line'); fills.forEach((n) => n.style.setProperty('--p', `${(p * 100).toFixed(1)}%`)); },
+      () => { sec.classList.remove('is-playing-line'); fills.forEach((n) => n.style.setProperty('--p', '0%')); });
+  });
+  // The take: same button; its waveform turns full Sky as it plays
+  document.querySelectorAll('.fx-take').forEach((row) => {
+    const cv = row.querySelector('canvas[data-wave="take"]');
+    wirePlay(row.querySelector('.fx-orig--take'), 'assets/audio/anna-take-2.wav', 'Play take 2',
+      (p) => drawWave(cv, SKY, 7, 3, p, TAKE_REST),
+      () => drawWave(cv, SKY, 7, 3, null, TAKE_REST));
+  });
+</script>
+</body>
+</html>

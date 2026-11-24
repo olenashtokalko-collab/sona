@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SONA Read — prototype v2</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Prototype bar (not part of the product) -->
+  <header class="proto-bar">
+    <div class="proto-bar__title">
+      <strong>SONA Read</strong> · speech-to-speech · clickable prototype <b>v2</b>
+    </div>
+    <div class="proto-bar__note">Render is simulated: takes are placeholder audio. Your mic recording is real and stays in the browser.</div>
+  </header>
+
+  <!-- Fake host (DAW) -->
+  <main class="host" id="host">
+    <div class="host__transport">
+      <button class="host-btn" id="hostPlay" title="Play the selected clip from the timeline (Space when the host has focus)">▶</button>
+      <span class="host__tc num" id="hostTc">01:02:05:00</span>
+      <span class="host__project" id="hostProject">Harbour Night – Ep. 2 · Nuendo</span>
+      <span class="host__hint" id="hostHint">Click a dialogue clip to start</span>
+    </div>
+
+    <div class="host__arrange">
+      <div class="host__tracks" id="trackHeads"></div>
+      <div class="host__timeline" id="timeline">
+        <div class="ruler" id="ruler"></div>
+        <div class="lanes" id="lanes"></div>
+        <div class="drop-new" id="dropNew">Drop here to create a new track</div>
+        <div class="host__playhead" id="hostPlayhead" hidden></div>
+      </div>
+    </div>
+
+    <!-- Plugin window, as the host shows it -->
+    <section class="plug-window" id="plugWindow" aria-label="SONA Read plugin window">
+      <div class="plug-window__chrome" id="plugChrome">
+        <span class="chrome-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="chrome-title" id="chromeTitle">ARA Extension · SONA Read</span>
+      </div>
+
+      <!-- ===== SONA plugin UI ===== -->
+      <div class="sona" id="sona" data-state="noclip">
+        <header class="s-header">
+          <div class="s-brand">
+            <img src="assets/logo/SONA_Bildmarke_Light.svg" alt="SONA" class="s-brand__mark">
+            <span class="s-brand__name">Read</span>
+          </div>
+          <nav class="s-header__links">
+            <button class="link" type="button" title="How SONA Read works" id="helpBtn">help</button>
+            <button class="link" type="button" title="Settings (prototype: not built)">settings</button>
+          </nav>
+        </header>
+
+        <!-- The line being fixed: its own full-width section (never an input slot) -->
+        <section class="s-line" id="clip" hidden>
+          <div class="s-line__meta">
+            <span class="s-line__lock" title="The original clip. SONA never overwrites it."><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></span>
+            <b id="clipWho">ANNA</b><span id="clipMeta">· 2.7 s · SC12_harbour_T3</span>
+          </div>
+          <div class="s-line__text" id="clipText" data-fill>We have to leave before the storm reaches the coast.</div>
+          <button class="pbtn" id="playOriginal" type="button" aria-label="Play the original" title="Play the original">
+            <svg class="pbtn__ring" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="16"/></svg>
+            <svg class="pbtn__play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z"/></svg>
+            <canvas class="pbtn__wave" aria-hidden="true"></canvas>
+          </button>
+          <div class="s-line__full" id="clipFull"><span data-fill></span></div>
+        </section>
+
+        <!-- Direction: what to change, described by the result. Chosen up front, one reference per direction -->
+        <div class="s-dir" id="dirRow" role="radiogroup" aria-label="What to change" hidden></div>
+
+        <!-- The result: take cells + the player (or the record / voice start) as one block, centred in the free space -->
+        <div class="s-result" id="result">
+          <div class="s-takes" id="takesRow" hidden>
+            <span class="s-takes__label">Take</span>
+            <div class="s-takes__chips" id="takeChips"></div>
+          </div>
+          <div class="s-work" id="work"></div>
+        </div>
+
+        <!-- Status line: only when there is something to say or do -->
+        <p class="s-status" id="status" aria-live="polite"></p>
+        <p class="s-substatus" id="substatus" hidden></p>
+
+        <!-- Bottom row: the AI notice (required on every SONA render) on the left, actions on the right -->
+        <div class="s-actions">
+          <p class="s-foot" title="Results are AI generated. Please ensure human review prior to external use. Every take carries a SONA Verify watermark.">AI-generated · SONA Verify</p>
+          <div class="s-actions__right">
+            <div class="s-actions__left" id="actionsLeft"></div>
+            <div class="split" id="primaryGroup">
+              <button class="btn btn--primary" id="primary" type="button" disabled>Render take</button>
+              <button class="btn btn--primary split__next" id="primaryNext" type="button" hidden aria-label="Apply and go to the next line">&amp; next<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 3 7.5 6l-3 3"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <input type="file" id="fileInput" accept="audio/*,.wav,.aif,.aiff,.mp3,.m4a" hidden>
+        <div class="s-dropover" aria-hidden="true" id="dropText">Drop a recording to use its intonation</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Prototype controls (not part of the product) -->
+  <aside class="proto-panel" id="protoPanel">
+    <div class="proto-panel__title">Prototype controls</div>
+    <label class="proto-field">Host
+      <select id="optHost">
+        <option value="nuendo">Nuendo / Cubase — ARA, plays in place</option>
+        <option value="reaper">REAPER — ARA + item takes</option>
+        <option value="protools">Pro Tools — AudioSuite render</option>
+        <option value="premiere">Premiere Pro — panel, new track</option>
+      </select>
+    </label>
+    <label class="proto-check"><input type="checkbox" id="optFailNext"> Fail the next render</label>
+    <label class="proto-check"><input type="checkbox" id="optDenyMic"> Simulate “mic access denied”</label>
+    <button class="proto-btn" id="optSample" type="button">Use a sample recording (file)</button>
+    <button class="proto-btn" id="optReset" type="button">Reset prototype</button>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
