@@ -3,17 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SONA Read — prototype v2</title>
+  <title>SONA Read — prototype V1</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Prototype version switch (not part of the product) */
+    .proto-bar { align-items: center; }
+    .proto-ver { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--host-border); border-radius: 4px; align-self: center; }
+    .proto-ver a { padding: 2px 8px; border-radius: 3px; color: var(--host-text-dim); text-decoration: none; font-weight: 500; }
+    .proto-ver a:hover { color: #e6e7e8; }
+    .proto-ver a[aria-current="page"] { background: #2a2e33; color: #e6e7e8; }
+  </style>
 </head>
 <body>
 
   <!-- Prototype bar (not part of the product) -->
   <header class="proto-bar">
-    <div class="proto-bar__title">
-      <strong>SONA Read</strong> · speech-to-speech · clickable prototype <b>v2</b>
-    </div>
-    <div class="proto-bar__note">Render is simulated: takes are placeholder audio. Your mic recording is real and stays in the browser.</div>
+    <div class="proto-bar__title"><strong>SONA Read</strong></div>
+    <nav class="proto-ver" aria-label="Prototype version"><a href="../flow-1-read-v2/index.html" data-port="5174" aria-current="page">V1</a><a href="../flow-1-read-v3/index.html" data-port="5176">V2</a></nav>
   </header>
 
   <!-- Fake host (DAW) -->
@@ -121,6 +127,13 @@
     <button class="proto-btn" id="optReset" type="button">Reset prototype</button>
   </aside>
 
+  <script>
+    // Each version also runs on its own local server (5174 = v2, 5176 = v3): point the switch there
+    (function () {
+      if (location.port !== '5174' && location.port !== '5176') return;
+      document.querySelectorAll('.proto-ver a').forEach(function (a) { a.href = location.protocol + '//' + location.hostname + ':' + a.dataset.port + '/'; });
+    })();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

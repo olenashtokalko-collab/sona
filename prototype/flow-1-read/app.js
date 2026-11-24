@@ -127,7 +127,7 @@
     stopPlayback();
     player.audio.src = url;
     player.audio.playbackRate = rate;
-    player.audio.preservesPitch = false;
+    player.audio.preservesPitch = true; // tempo follows the read, the voice keeps its pitch
     player.kind = kind; player.id = id;
     player.audio.play().catch(() => {});
     const tick = () => {
@@ -419,7 +419,7 @@
     const appliedN = S.applied[c.id];
     const t = appliedTake(c);
     hostAudio = new Audio(t ? t.url : c.audio);
-    if (t) { hostAudio.playbackRate = t.rate || 1; hostAudio.preservesPitch = false; }
+    if (t) { hostAudio.playbackRate = t.rate || 1; hostAudio.preservesPitch = true; }
     hostAudio.play().catch(() => {});
     el.hostPlay.setAttribute('aria-pressed', 'true');
     el.hostPlayhead.hidden = false;
@@ -717,7 +717,11 @@
       return render();
     }
     const { peaks, dur } = await decodePeaks(variant);
-    take.peaks = peaks; take.dur = dur / rate; take.status = 'ready';
+    // Render is simulated with fixed files, so their length has nothing to do with the read. A real render follows
+    // your timing (Tone) or the clip's (Voice): stretch the placeholder to that length, with a small spread per take.
+    const target = (voice || !read.dur ? c.dur : read.dur) * [1, 0.97, 1.03][(n - 1) % 3];
+    take.rate = Math.min(2, Math.max(0.5, dur / target));
+    take.peaks = peaks; take.dur = dur / take.rate; take.status = 'ready';
     take.revealAt = performance.now();   // the take "prints in" left to right (~320 ms, 8 steps)
     S.state = 'takes';
     render();

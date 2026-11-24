@@ -172,7 +172,7 @@
     player.audio.src = url;
     if (startFrac > 0) player.audio.addEventListener('loadedmetadata', () => { player.audio.currentTime = startFrac * player.audio.duration; }, { once: true });
     player.audio.playbackRate = rate;
-    player.audio.preservesPitch = false;
+    player.audio.preservesPitch = true; // tempo follows the read, the voice keeps its pitch
     player.kind = kind; player.id = id;
     player.audio.play().catch(() => {});
     startTick();
@@ -515,7 +515,7 @@
     const appliedN = S.applied[c.id];
     const t = appliedTake(c);
     hostAudio = new Audio(t ? t.url : c.audio);
-    if (t) { hostAudio.playbackRate = t.rate || 1; hostAudio.preservesPitch = false; }
+    if (t) { hostAudio.playbackRate = t.rate || 1; hostAudio.preservesPitch = true; }
     hostAudio.play().catch(() => {});
     el.hostPlay.setAttribute('aria-pressed', 'true');
     el.hostPlayhead.hidden = false;
@@ -871,7 +871,11 @@
       return render();
     }
     const { peaks, dur } = await decodePeaks(variant);
-    take.peaks = peaks; take.dur = dur / rate; take.status = 'ready';
+    // Render is simulated with fixed files, so their length has nothing to do with the read. A real render follows
+    // your timing (Tone) or the clip's (Voice): stretch the placeholder to that length, with a small spread per take.
+    const target = (voice || !read.dur ? c.dur : read.dur) * [1, 0.97, 1.03][(n - 1) % 3];
+    take.rate = Math.min(2, Math.max(0.5, dur / target));
+    take.peaks = peaks; take.dur = dur / take.rate; take.status = 'ready';
     take.revealAt = performance.now();   // the take "prints in" left to right (~320 ms, 8 steps)
     S.state = appliedHere() ? 'applied' : 'takes'; // the clip may already play an earlier take
     render();
@@ -1134,17 +1138,13 @@
     const mini = r && r.peaks ? `<canvas data-strip="readmini" data-id="${t.read}"></canvas>
       <button class="trow__readplay" data-act="play-read" data-id="${t.read}" aria-label="Play the recording" title="Play the recording">${readOn ? ICON.pause : ICON.play}</button>` : '';
     // Applied: under the dots, what Apply did in this host (where the take went, the original is safe).
-    // Longer than the clip: a second, amber line. Premiere places the take as its own clip, so only
-    // Nuendo, REAPER and Pro Tools cut it at the clip end. Pro Tools (AudioSuite renders the selection): verify with SONA devs.
+    // No "longer than the clip" warning: a take follows your read, and small overruns are trailing silence.
     if (S.state === 'applied' && appliedHere() === t.n) {
-      const fix = { nuendo: 'trim the clip end open', reaper: 'extend the item end', protools: 'extend the selection, Apply again' }[S.host];
-      const over = fix ? t.dur - S.clip.dur : 0;
       return `<div class="trow">
       <button class="pbtn pbtn--take${on ? ' is-playing' : ''}" data-act="play-take" data-id="${t.n}" aria-label="${on ? 'Pause' : `Play take ${t.n}`}" title="${on ? 'Pause' : `Play take ${t.n}`}">${RING}${PLAY}${PAUSE}</button>
       <canvas data-strip="take" data-id="${t.n}"></canvas>
-      <span class="trow__dur num${over > 0.1 ? ' warn' : ''}">${t.dur.toFixed(1)} s</span>
+      <span class="trow__dur num">${t.dur.toFixed(1)} s</span>
       <div class="trow__sub trow__sub--done"><span>${hostResultLine()}</span></div>
-      ${over > 0.1 ? `<div class="trow__sub trow__sub--warn"><span class="alert-ico">${ICON.alert}</span><span title="The end of the take is cut by the clip in ${H().app}">${over.toFixed(1)} s longer than the clip · ${fix}</span></div>` : ''}
     </div>`;
     }
     return `<div class="trow">
@@ -1208,7 +1208,7 @@
     if (S.state !== 'applied') return '';
     const c = S.clip, n = S.applied[c.id], t = S.takes.find((x) => x.n === n);
     void c; void n; void t;
-    return ''; // "longer than the clip" now sits under the waveform (takeStrip); host details live under ⓘ
+    return ''; // what happened sits under the take's dots (takeStrip); host details live under ⓘ
   }
 
   // Note about the read behind the current take: length vs the original, trimmed silence

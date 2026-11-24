@@ -1,0 +1,86 @@
+/* =========================================================
+   SONA Read — prototype v3 additions (load after styles.css)
+   1. Fix some words: the line as pickable words, punch-in pre-roll, word-fix takes
+   2. Compare: Original / your read / take at the same point (keys 1 2 3, L = loop)
+   Colour roles as in v2: Burn = what you act on / live, Sky = the actor's voice (takes), grey = your read
+   ========================================================= */
+
+/* ---------- 1. The line as words ---------- */
+.s-line__text .w { border-radius: 1px; transition: color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
+.s-line.is-pickable .s-line__text { cursor: text; }
+.s-line.is-pickable .s-line__text .w { cursor: pointer; }
+.s-line.is-pickable .s-line__text .w:hover {
+  text-decoration: underline dotted; text-decoration-color: var(--text-muted); text-underline-offset: 4px;
+}
+/* picked words: what you will say — Burn underline, slightly brighter */
+.s-line__text .w--pick {
+  color: var(--text-primary);
+  text-decoration: underline solid; text-decoration-color: var(--accent) !important; text-decoration-thickness: 2px; text-underline-offset: 5px;
+  background: rgba(255, 69, 25, 0.12);
+  -webkit-text-fill-color: var(--text-primary);
+}
+.s-line.is-pickable .s-line__text .w--pick:hover { text-decoration-style: solid; }
+/* words a selected take re-said: the actor's voice colour */
+.s-line__text .w--changed { color: var(--actor); -webkit-text-fill-color: var(--actor); }
+/* while the original reads itself, picked / changed words keep their colour */
+.s-line.is-reading [data-fill] .w--pick, .s-line.is-reading [data-fill] .w--changed { background-clip: border-box; -webkit-background-clip: border-box; }
+
+/* punch-in pre-roll: the line reads up to the picked words */
+.s-line.is-preroll [data-fill] {
+  background: linear-gradient(90deg, #ffffff calc(var(--pre, 0%) - 4%), rgba(242, 241, 237, .42) calc(var(--pre, 0%) + 4%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.s-line.is-preroll [data-fill] .w--pick { background: rgba(255, 69, 25, 0.12); -webkit-background-clip: border-box; background-clip: border-box; }
+
+/* ready: discoverability tip + scope note */
+.ready__tip { margin: 10px 0 0; font-size: var(--fs-meta); line-height: var(--lh-meta); color: var(--text-disabled); text-align: center; }
+.ready__fixnote { margin: 8px 0 0; gap: 6px; font-size: var(--fs-meta); line-height: 16px; color: var(--text-muted); flex-wrap: wrap; text-align: center; }
+.ready--fix .ready__t { max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec--stack .rec__sub { margin-top: 6px; }
+
+/* a take that re-said only some words: a short Sky bar under its number */
+.chip--fix { position: relative; }
+.chip--fix::after {
+  content: ""; position: absolute; left: 30%; right: 30%; bottom: 4px; height: 2px; border-radius: 1px;
+  background: var(--actor); opacity: .9;
+}
+
+/* ---------- 2. Compare row ---------- */
+.abx {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; margin-top: 6px; min-width: 0;
+}
+.abx__lbl { margin-right: 4px; font-size: var(--fs-meta); line-height: 14px; color: var(--text-muted); cursor: help; }
+.abx__b, .abx__loop {
+  height: 24px; display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; min-width: 0;
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-box); background: none; cursor: pointer;
+  color: var(--text-secondary); font: 400 12px/1 var(--font); white-space: nowrap;
+  transition: color var(--dur-2) var(--ease), border-color var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease);
+}
+.abx__b:hover, .abx__loop:hover, .abx__b:focus-visible, .abx__loop:focus-visible { color: var(--text-primary); border-color: var(--border-strong); outline: none; }
+.abx__b i { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.abx__b--orig i { background: var(--sona-offwhite); }
+.abx__b--read i { background: var(--you); }
+.abx__b--take i { background: var(--actor); }
+.abx__b kbd { font: 400 10px/1 var(--font); color: var(--text-disabled); padding: 2px 3px; border: 1px solid var(--border-subtle); border-radius: 2px; }
+/* the one that plays: Burn = live */
+.abx__b.is-on { color: var(--text-primary); border-color: var(--accent); background: rgba(255, 69, 25, 0.08); }
+.abx__b.is-on i { box-shadow: 0 0 0 2px rgba(255, 69, 25, 0.35); }
+.abx__loop { margin-left: auto; color: var(--text-muted); }
+.abx__loop::before { content: "↻"; font-size: 12px; }
+.abx__loop[aria-pressed="true"] { color: var(--text-primary); border-color: var(--border-strong); background: var(--surface-2); }
+
+/* narrow window: keys go first, then the label */
+@media (max-width: 520px) { .abx__lbl { display: none; } }
+
+/* back to the whole line, next to "Record “words”" in the takes row */
+.tk-x { width: 20px; height: 20px; margin-left: -4px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 2px;
+  background: none; color: var(--text-muted); font: 400 14px/1 var(--font); cursor: pointer; }
+.tk-x:hover, .tk-x:focus-visible { color: var(--text-primary); background: var(--surface-2); outline: none; }
+
+/* the window is 36 px taller than v2 by default (480 × 412, v2 is 376), so the compare row fits under the take; still resizable as in v2 */
+.sona { height: 412px; }
+
+/* with the compare row the take's dots are a little shorter (6 rows of room instead of 9), so a status line still fits */
+.sona:has(.abx) .trow canvas[data-strip="take"] { height: 44px; }
+.sona:has(.abx) .s-result { gap: 4px; }
+.sona:has(.abx) .s-status { margin-top: 4px; }
