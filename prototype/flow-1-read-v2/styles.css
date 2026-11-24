@@ -41,10 +41,9 @@
 
   --font: "Inter Display", "Inter", system-ui, sans-serif;
   --fs-caption: 11px; --lh-caption: 14px;
-  --fs-meta: 12px; --lh-meta: 16px;
+  --fs-meta: 11px; --lh-meta: 14px;   /* type scale: 11 · 13 · 15 */
   --fs-ui: 13px; --lh-ui: 18px;
-  --fs-body: 14px; --lh-body: 20px;
-  --fs-line: 16px; --lh-line: 24px;
+  --fs-line: 15px; --lh-line: 20px;
 
   --space-1: 2px; --space-2: 4px; --space-3: 8px; --space-4: 12px; --space-5: 16px; --space-6: 24px;
   --radius-box: 2px;
@@ -585,7 +584,7 @@ body.is-dragging .drop-new { display: flex; }
 /* full line on hover, only when it doesn't fit */
 .s-line__full { display: none; position: absolute; left: var(--space-4); right: var(--space-4); top: calc(100% + 4px); z-index: 7;
   background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius-box); box-shadow: 0 8px 24px rgba(0,0,0,.5);
-  padding: 8px 12px; font-size: 14px; line-height: 20px; color: var(--text-primary); white-space: normal; }
+  padding: 8px 12px; font-size: 15px; line-height: 20px; color: var(--text-primary); white-space: normal; }
 .s-line[data-trunc="true"] .s-line__text:hover ~ .s-line__full { display: block; }
 
 /* One round play component (original + take): grey ring, brighter on hover */
@@ -968,3 +967,28 @@ body.is-dragging .drop-new { display: flex; }
 .dirx__opt[aria-checked="true"] .dirx__dot { box-shadow: none; }
 /* bookmark star next to SONA voices: Offwhite (warnings stay amber) */
 .voice-menu__star { color: var(--text-primary); }
+
+/* type scale 11 · 13 · 15: help · settings are utility links, quiet and small */
+.s-header__links .link { font-size: 11px; color: var(--text-muted); }
+.s-header__links .link:hover { color: var(--text-primary); }
+/* the line in the clip card: 14 px (its full-text hover too) */
+.s-line__text { font-size: 14px; }
+.s-line__full { font-size: 14px; }
+
+/* start sections: smaller circle, quieter halo, one line for the other way, more air */
+.ready__alt { margin: 20px 0 0; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+.ready__alt .ready__or { margin: 0; font-size: 13px; line-height: 16px; color: var(--text-muted); }
+.ready__alt .ready__file { margin: 0; }
+.ready__main .recbtn { width: 42px; height: 42px; }
+.ready__main .recbtn::after { width: 13px; height: 13px; }
+.ready__main .recbtn--voice .mic-ico { width: 16px; height: 16px; }
+.recbtn--note { width: 42px; height: 42px; }
+.recbtn--note svg { width: 16px; height: 16px; }
+/* halo: one faint ring at rest; Record's grows with the mic level; the voice circle shows it only on hover */
+.ready__main .recbtn { box-shadow: 0 0 0 calc(6px + var(--lvl) * 8px) rgba(242,241,237,calc(.03 + var(--lvl) * .03)); }
+.ready__main .recbtn--voice { box-shadow: none; transition: box-shadow var(--dur-3) var(--ease), border-color var(--dur-2) var(--ease); }
+.ready__main:hover .recbtn--voice, .ready__main[aria-expanded="true"] .recbtn--voice { box-shadow: 0 0 0 6px rgba(242,241,237,.03); }
+.recbtn--note { box-shadow: 0 0 0 6px rgba(242,241,237,.03); }
+/* even air above (to the halo) and below (to the footer) */
+.ready__alt { margin-top: 16px; }
+.sona[data-state="ready"] .ready { padding-top: 6px; }

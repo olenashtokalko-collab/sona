@@ -1031,8 +1031,7 @@
                   <span class="recbtn recbtn--voice" aria-hidden="true">${ICON.person}</span><span class="ready__t">Choose a SONA voice</span></button>
                 ${S.voiceMenu ? voiceMenuHTML() : ''}
               </div>
-              <span class="ready__or">or</span>
-              <button class="ready__file" data-act="pick-file" title="Any clean recording of the voice you want, up to 60 s. You can also drop a file anywhere on the plugin.">Use a recording</button>
+              <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="Any clean recording of the voice you want, up to 60 s. You can also drop a file anywhere on the plugin.">use a recording</button></p>
             </div>`;
         }
         void ok; void who;
@@ -1040,8 +1039,7 @@
           <div class="ready">
             <button class="ready__main" data-act="record" title="Record your read (R) · say the line the way it should sound, up to 60 s">
               <span class="recbtn" aria-hidden="true"></span><span class="ready__t">Record your read</span></button>
-            <span class="ready__or">or</span>
-            <button class="ready__file" data-act="pick-file" title="A pickup the actor recorded, or someone else’s read. You can also drop a file here.">Use a recording</button>
+            <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="A pickup the actor recorded, or someone else’s read. You can also drop a file here.">use a recording</button></p>
           </div>`;
       }
       case 'countin':
