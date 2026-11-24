@@ -613,7 +613,7 @@
     let stream = null;
     if (!demo) {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } });
+        stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
       } catch (e) {
         S.error = { type: 'mic' }; S.state = 'micdenied'; return render();
       }
@@ -676,7 +676,9 @@
       while (r.frames.length <= slot) r.frames.push(0);
       r.frames[slot] = Math.max(r.frames[slot], Math.min(1, peak * 1.8));
       // auto-stop: 2.5 s of silence after speech (a dramatic pause is part of the read)
-      if (peak > 0.015) { r.heard = true; r.silenceSince = 0; }            // lower bar, so a quiet mic still counts as speech
+      // speech = clearly above the room: the floor follows the quietest level and creeps up slowly
+      if (peak > 0.001) r.floor = r.floor == null || peak < r.floor ? peak : r.floor + (peak - r.floor) * 0.002;
+      if (r.floor != null && peak > Math.max(0.02, r.floor * 4)) { r.heard = true; r.silenceSince = 0; }
       else if (r.heard && !r.demo) { r.silenceSince ||= performance.now(); if (performance.now() - r.silenceSince > 2500) return stopRecording(); }
       // nothing said for 5 s: stop — the read then shows "no speech found" instead of running on
       if (!r.heard && !r.demo && t > 5) return stopRecording();
@@ -798,8 +800,13 @@
     if (!rms.length) return null;
     const sorted = [...rms].sort((a, b) => a - b);
     const ref = sorted[Math.floor(sorted.length * 0.9)];
-    const thr = Math.max(0.006, ref * 0.2);
+    const floor = sorted[Math.floor(sorted.length * 0.1)];          // the room when nobody speaks
+    const peak = sorted[Math.floor(sorted.length * 0.98)];
+    // speech is at least ~12 dB above the room and not whisper-quiet; otherwise it is silence or noise
+    if (peak < Math.max(0.015, floor * 4)) return null;
+    const thr = Math.max(0.008, floor * 3, ref * 0.2);
     const loud = rms.map((v) => v > thr);
+    if (loud.filter(Boolean).length * 0.02 < 0.3) return null;     // clicks and breaths are not a read
     const run = (i) => loud[i] && loud[i + 1] && loud[i + 2];
     let a = 0; while (a < rms.length - 2 && !run(a)) a++;
     let b = rms.length - 3; while (b > a && !run(b)) b--;
@@ -1066,8 +1073,8 @@
       const on = player.kind === 'voice' && player.id === i && !player.paused;
       return `<div class="voice-menu__item" role="option">
         <button class="vprev${on ? ' is-playing' : ''}" data-act="preview-voice" data-id="${i}" aria-label="${on ? 'Stop' : `Hear ${v.name}`}" title="${on ? 'Stop' : `Hear ${v.name}`}">${on ? '<canvas class="vprev__wave" aria-hidden="true"></canvas>' : ICON.play}</button>
-        <button class="voice-menu__pick" data-act="pick-voice" data-id="${i}" title="Use ${v.name}">
-          <span class="voice-menu__name">${v.name}${v.who ? ` <small>${v.who}</small>` : ''}${v.fav ? '<span class="voice-menu__star" aria-label="Bookmarked" title="Bookmarked">★</span>' : ''}</span><span class="tag">${v.tag}</span></button></div>`;
+        <button class="voice-menu__pick" data-act="pick-voice" data-id="${i}" title="Use ${v.name} · ${v.tag} voice">
+          <span class="voice-menu__name">${v.name}${v.who ? ` <small>${v.who}</small>` : ''}${v.fav ? '<span class="voice-menu__star" aria-label="Bookmarked" title="Bookmarked">★</span>' : ''}</span></button></div>`;
     };
     // From the takes row the list also carries "Use a recording…", pinned at the bottom so it never needs scrolling
     const foot = withFile ? `<div class="voice-menu__foot"><button class="voice-menu__file" data-act="nv-file">${ICON.file}<span>Use a recording…</span></button></div>` : '';
