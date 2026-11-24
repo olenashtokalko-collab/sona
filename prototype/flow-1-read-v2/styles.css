@@ -174,7 +174,7 @@ body.is-dragging .drop-new { display: flex; }
    SONA plugin UI
    ========================================================= */
 .sona {
-  width: 480px; height: 360px; min-width: 420px; min-height: 330px; max-width: 900px; max-height: 640px;
+  width: 480px; height: 376px; min-width: 420px; min-height: 330px; max-width: 900px; max-height: 640px;
   resize: both; overflow: hidden;
   display: flex; flex-direction: column;
   padding: 0 var(--space-4) var(--space-2);
@@ -992,3 +992,7 @@ body.is-dragging .drop-new { display: flex; }
 /* even air above (to the halo) and below (to the footer) */
 .ready__alt { margin-top: 16px; }
 .sona[data-state="ready"] .ready { padding-top: 6px; }
+
+/* v2.6 · after Apply: what happened in the host sits under the take's dots (a little brighter than captions);
+   a length warning adds a second, amber line, so the window is 16 px taller to hold both */
+.trow__sub--done { color: var(--text-secondary); }

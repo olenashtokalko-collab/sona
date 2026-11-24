@@ -1031,7 +1031,7 @@
                   <span class="recbtn recbtn--voice" aria-hidden="true">${ICON.person}</span><span class="ready__t">Choose a SONA voice</span></button>
                 ${S.voiceMenu ? voiceMenuHTML() : ''}
               </div>
-              <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="Any clean recording of the voice you want, up to 60 s. You can also drop a file anywhere on the plugin.">use a recording</button></p>
+              <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="Any clean recording of the voice you want, up to 60 s. You can also drop a file anywhere on the plugin.">use a voice sample</button></p>
             </div>`;
         }
         void ok; void who;
@@ -1039,7 +1039,7 @@
           <div class="ready">
             <button class="ready__main" data-act="record" title="Record your read (R) · say the line the way it should sound, up to 60 s">
               <span class="recbtn" aria-hidden="true"></span><span class="ready__t">Record your read</span></button>
-            <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="A pickup the actor recorded, or someone else’s read. You can also drop a file here.">use a recording</button></p>
+            <p class="ready__alt"><span class="ready__or">or</span> <button class="ready__file" data-act="pick-file" title="A pickup the actor recorded, or someone else’s read. You can also drop a file here.">use a recorded read</button></p>
           </div>`;
       }
       case 'countin':
@@ -1080,8 +1080,8 @@
         <button class="voice-menu__pick" data-act="pick-voice" data-id="${i}" title="Use ${v.name} · ${v.tag} voice">
           <span class="voice-menu__name">${v.name}${v.who ? ` <small>${v.who}</small>` : ''}${v.fav ? '<span class="voice-menu__star" aria-label="Bookmarked" title="Bookmarked">★</span>' : ''}</span></button></div>`;
     };
-    // From the takes row the list also carries "Use a recording…", pinned at the bottom so it never needs scrolling
-    const foot = withFile ? `<div class="voice-menu__foot"><button class="voice-menu__file" data-act="nv-file">${ICON.file}<span>Use a recording…</span></button></div>` : '';
+    // From the takes row the list also carries "Use a voice sample…", pinned at the bottom so it never needs scrolling
+    const foot = withFile ? `<div class="voice-menu__foot"><button class="voice-menu__file" data-act="nv-file">${ICON.file}<span>Use a voice sample…</span></button></div>` : '';
     return `<div class="voice-menu${withFile ? ' has-foot' : ''}" role="listbox" aria-label="SONA voices">${order.map(row).join('')}${foot}</div>`;
   }
   function readStrip(i, r) {
@@ -1133,14 +1133,18 @@
       : `from ${r?.source === 'file' ? r.name : 'your read'} · ${r ? r.dur.toFixed(1) : '–'} s`;
     const mini = r && r.peaks ? `<canvas data-strip="readmini" data-id="${t.read}"></canvas>
       <button class="trow__readplay" data-act="play-read" data-id="${t.read}" aria-label="Play the recording" title="Play the recording">${readOn ? ICON.pause : ICON.play}</button>` : '';
-    // Applied in Nuendo and longer than the clip: say it under the dots, like every other warning
-    const over = S.state === 'applied' && appliedHere() === t.n && H().tier === 'T1' ? t.dur - S.clip.dur : 0;
-    if (over > 0.1) {
+    // Applied: under the dots, what Apply did in this host (where the take went, the original is safe).
+    // Longer than the clip: a second, amber line. Premiere places the take as its own clip, so only
+    // Nuendo, REAPER and Pro Tools cut it at the clip end. Pro Tools (AudioSuite renders the selection): verify with SONA devs.
+    if (S.state === 'applied' && appliedHere() === t.n) {
+      const fix = { nuendo: 'trim the clip end open', reaper: 'extend the item end', protools: 'extend the selection, Apply again' }[S.host];
+      const over = fix ? t.dur - S.clip.dur : 0;
       return `<div class="trow">
       <button class="pbtn pbtn--take${on ? ' is-playing' : ''}" data-act="play-take" data-id="${t.n}" aria-label="${on ? 'Pause' : `Play take ${t.n}`}" title="${on ? 'Pause' : `Play take ${t.n}`}">${RING}${PLAY}${PAUSE}</button>
       <canvas data-strip="take" data-id="${t.n}"></canvas>
-      <span class="trow__dur num warn">${t.dur.toFixed(1)} s</span>
-      <div class="trow__sub trow__sub--warn"><span class="alert-ico">${ICON.alert}</span><span title="Trim the clip end open in Nuendo">${over.toFixed(1)} s longer than the clip · trim the clip end open</span></div>
+      <span class="trow__dur num${over > 0.1 ? ' warn' : ''}">${t.dur.toFixed(1)} s</span>
+      <div class="trow__sub trow__sub--done"><span>${hostResultLine()}</span></div>
+      ${over > 0.1 ? `<div class="trow__sub trow__sub--warn"><span class="alert-ico">${ICON.alert}</span><span title="The end of the take is cut by the clip in ${H().app}">${over.toFixed(1)} s longer than the clip · ${fix}</span></div>` : ''}
     </div>`;
     }
     return `<div class="trow">
@@ -1173,22 +1177,30 @@
         if (other) return `Clip plays ${takeName(S.applied[c.id], S.appliedDir[c.id])} from “${DIRS[S.appliedDir[c.id]].title}” · Apply here replaces it`;
         return sel ? '' : 'Pick a take';
       }
-      case 'applied': return ''; // what happened in this host is under ⓘ next to “✓ Applied”
+      case 'applied': return ''; // what Apply did in this host is under the take's dots
     }
     return '';
   }
 
   // What Apply did in this host (the client's open problem #2): shown under ⓘ next to "✓ Applied"
-  function hostDetailsHTML(n) {
-    const c = S.clip, nm = takeName(n);
-    const short = { nuendo: `Clip plays ${nm}`, reaper: `${cap(nm)} added as an item take`, protools: `${cap(nm)} rendered into the clip`, premiere: `${cap(nm)} placed on A4` }[S.host];
-    const more = {
-      nuendo: `not printed yet<br>The original is kept. Print it in Nuendo: <b>${H().print}</b>`,
-      reaper: 'earlier takes stay in the item<br>Switch takes in REAPER (T) or here.',
-      protools: 'the original stays in the Clips List<br>Undo puts it back.',
-      premiere: `at ${c.tc}, the original is untouched<br>Mute A1 to hear only the take.`,
+  // One line under the applied take's dots: where the take went and that the original is safe
+  function hostResultLine() {
+    return {
+      nuendo: 'The clip plays this take · the original is kept',
+      reaper: 'Added as an item take · earlier takes stay',
+      protools: 'Rendered into the clip · the original is in the Clips List',
+      premiere: `Placed on ${H().newTrack.split(' ')[0]} · the original is untouched`,
     }[S.host];
-    return `<span class="applied-info"><span class="info" tabindex="0" aria-label="What happened in ${H().app}">i</span><span class="pop pop--up"><b>${short}</b> · ${more}</span></span>`;
+  }
+  // ⓘ next to "✓ Applied": only the next step in this host (the result itself is the line above)
+  function hostDetailsHTML() {
+    const next = {
+      nuendo: `Not printed yet. To print it: <b>${H().print}</b>`,
+      reaper: 'Switch takes in REAPER (T) or here.',
+      protools: 'Undo in Pro Tools puts the original back.',
+      premiere: 'Mute A1 to hear only the take.',
+    }[S.host];
+    return `<span class="applied-info"><span class="info" tabindex="0" aria-label="Next step in ${H().app}">i</span><span class="pop pop--up">${next}</span></span>`;
   }
   // Second line: host-specific follow-up after Apply (print, take length, file location)
   function substatusHTML() {
@@ -1268,7 +1280,7 @@
         ? `<div class="voice-lib nv-wrap"><button class="tk-rec tk-rec--add" data-act="new-voice-menu" aria-haspopup="menu" aria-expanded="${!!S.newVoiceMenu}" title="Add another voice. It becomes the next take.">New voice</button>${
             S.newVoiceMenu === 'choose' ? `<div class="nv-menu" role="menu">
               <button class="nv-menu__item" role="menuitem" data-act="nv-sona">${ICON.person}<span>Choose a SONA voice</span>${ICON.chevron}</button>
-              <button class="nv-menu__item" role="menuitem" data-act="nv-file">${ICON.file}<span>Use a recording…</span></button></div>`
+              <button class="nv-menu__item" role="menuitem" data-act="nv-file">${ICON.file}<span>Use a voice sample…</span></button></div>`
             : S.newVoiceMenu === 'voices' ? voiceMenuHTML(true) : ''}</div>`
         : `<button class="tk-rec" data-act="record" title="Record another read (R). It renders straight into the next take.">Record another</button>`)
       : '');
@@ -1338,7 +1350,7 @@
         // The job for this line is done: the button confirms it. Picking another take turns it back into Apply.
         const n = appliedHere();
         if (S.selected === n) {
-          p.innerHTML = `${hostDetailsHTML(n)}Applied`; p.className = 'btn btn--done'; p.setAttribute('aria-disabled', 'true'); p.title = '';
+          p.innerHTML = `${hostDetailsHTML()}Applied`; p.className = 'btn btn--done'; p.setAttribute('aria-disabled', 'true'); p.title = '';
           left = (S.dir === 'voice'
             ? `<button class="tk-rec tk-rec--icon" data-act="change-take" title="Put the original back and pick another voice">${ICON.swap}Change voice</button>`
             : `<button class="tk-rec tk-rec--icon" data-act="change-take" title="Put the original back and pick another take">${ICON.swap}Change take</button>`);
