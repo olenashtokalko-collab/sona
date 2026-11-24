@@ -1,0 +1,489 @@
+/* =========================================================
+   SONA brand — Inter Display (from Brand Kit)
+   ========================================================= */
+@font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Medium.ttf") format("truetype"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-SemiBold.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+
+/* =========================================================
+   SONA UI tokens (draft v0.1, from research doc 08 §10,
+   colour roles from doc 10 §2.1)
+   Sky  = the actor's voice (clip chip, every rendered take)
+   Neutral + mic icon = your read
+   Burn = actions and live states only (record lamp, primary, selected take, errors)
+   ========================================================= */
+:root {
+  --sona-blue-moon: #000e16;
+  --sona-diaslide: #c9c7bd;
+  --sona-offwhite: #f2f1ed;
+  --sona-burn: #ff4519;
+  --sona-sky: #99abff;
+
+  --bg: var(--sona-blue-moon);
+  --surface-1: #0b1820;
+  --surface-2: #15232c;
+  --border-subtle: #2a3740;
+  --border-strong: #66737b;
+  --text-primary: var(--sona-offwhite);
+  --text-secondary: var(--sona-diaslide);
+  --text-muted: #8e9192;
+  --text-disabled: #5c6569;
+  --accent: var(--sona-burn);
+  --accent-hover: #ff6a45;
+  --accent-pressed: #e03a12;
+  --on-accent: var(--sona-blue-moon);
+  --actor: var(--sona-sky);
+  --you: #8e9192;            /* your read: neutral grey dots + mic icon (never ships) */
+  --warning: #ffc14d;
+  --error-surface: #2a1410;
+  --focus-ring: var(--sona-offwhite);
+
+  --font: "Inter Display", "Inter", system-ui, sans-serif;
+  --fs-caption: 11px; --lh-caption: 14px;
+  --fs-meta: 12px; --lh-meta: 16px;
+  --fs-ui: 13px; --lh-ui: 18px;
+  --fs-body: 14px; --lh-body: 20px;
+  --fs-line: 16px; --lh-line: 24px;
+
+  --space-1: 2px; --space-2: 4px; --space-3: 8px; --space-4: 12px; --space-5: 16px; --space-6: 24px;
+  --radius-box: 2px;
+  --control-h: 28px;
+
+  --dur-1: 80ms; --dur-2: 120ms; --dur-3: 200ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Host (DAW) — deliberately neutral, not SONA brand */
+  --host-bg: #1c1e21;
+  --host-panel: #25282c;
+  --host-border: #34383d;
+  --host-text: #b9bcc0;
+  --host-text-dim: #7d8186;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--host-bg);
+  color: var(--host-text);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+.num { font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* =========================================================
+   Prototype bar & panel (outside the product)
+   ========================================================= */
+.proto-bar {
+  display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap;
+  padding: 8px 16px; background: #111315; border-bottom: 1px solid var(--host-border);
+  font-size: 12px; color: var(--host-text-dim);
+}
+.proto-bar__title strong { color: #e6e7e8; }
+.proto-panel {
+  position: fixed; left: 16px; bottom: 16px; width: 260px; z-index: 20;
+  background: #111315; border: 1px solid var(--host-border); border-radius: 6px;
+  padding: 12px; font-size: 12px; color: var(--host-text);
+  display: flex; flex-direction: column; gap: 8px;
+}
+.proto-panel__title { font-weight: 600; color: #e6e7e8; }
+.proto-check { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.proto-btn {
+  align-self: flex-start; background: #2c3035; color: #e6e7e8; border: 1px solid #44494f;
+  border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer;
+}
+.proto-btn:hover { background: #353a40; }
+.proto-panel__keys { margin: 0; color: var(--host-text-dim); line-height: 1.5; }
+.proto-field { display: flex; flex-direction: column; gap: 4px; color: var(--host-text-dim); }
+.proto-field select {
+  font: inherit; color: #e6e7e8; background: #2c3035; border: 1px solid #44494f; border-radius: 4px; padding: 4px 6px;
+}
+.proto-panel__keys b { color: var(--host-text); font-weight: 600; }
+
+/* =========================================================
+   Host (fake DAW)
+   ========================================================= */
+.host { position: relative; height: calc(100% - 34px); display: flex; flex-direction: column; }
+.host__transport {
+  display: flex; align-items: center; gap: 12px; padding: 6px 12px;
+  background: var(--host-panel); border-bottom: 1px solid var(--host-border);
+}
+.host-btn {
+  width: 28px; height: 24px; border-radius: 3px; border: 1px solid #44494f;
+  background: #2c3035; color: #e6e7e8; cursor: pointer; font-size: 11px;
+}
+.host-btn[aria-pressed="true"] { background: #3d7a5a; border-color: #4f9a72; }
+.host__tc { font: 15px/1 ui-monospace, "SF Mono", Menlo, monospace; color: #9fe0b8; letter-spacing: 0.04em; }
+.host__project { color: var(--host-text-dim); }
+.host__hint { margin-left: auto; color: #e6c15c; font-size: 12px; }
+
+.host__arrange { flex: 1; display: flex; min-height: 0; }
+.host__tracks { width: 120px; flex: none; background: var(--host-panel); border-right: 1px solid var(--host-border); padding-top: 22px; }
+.track-head { height: 72px; padding: 8px 10px; border-bottom: 1px solid var(--host-border); font-size: 12px; color: #d4d6d9; }
+.host__timeline { position: relative; flex: 1; overflow: hidden; }
+.ruler { height: 22px; border-bottom: 1px solid var(--host-border); position: relative; background: #202326; }
+.ruler span { position: absolute; top: 4px; font: 10px/1 ui-monospace, Menlo, monospace; color: var(--host-text-dim); padding-left: 3px; border-left: 1px solid #3a3e43; height: 18px; }
+.lane { position: relative; height: 72px; border-bottom: 1px solid var(--host-border); }
+.lane:nth-child(odd) { background: #1f2124; }
+
+.clip {
+  position: absolute; top: 6px; height: 60px; border-radius: 3px; overflow: hidden;
+  background: #2f5547; border: 1px solid #3f6f5d; color: #dfe9e4; cursor: pointer;
+  font-size: 11px; padding: 3px 6px; text-align: left; font-family: inherit;
+}
+.clip[data-track="1"] { background: #3c3f6b; border-color: #50548a; }
+.clip[data-track="2"] { background: #3a3a3a; border-color: #4a4a4a; cursor: default; color: #a8a8a8; }
+.clip:hover:not([data-track="2"]) { filter: brightness(1.12); }
+.clip[aria-selected="true"] { outline: 2px solid #f0f0f0; outline-offset: -1px; filter: brightness(1.15); }
+.clip__name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.clip__wave { position: absolute; left: 4px; right: 4px; bottom: 6px; height: 30px; opacity: .55; }
+.clip__tag {
+  position: absolute; right: 4px; top: 3px; font-size: 10px; padding: 0 4px; border-radius: 2px;
+  background: var(--sona-sky); color: var(--sona-blue-moon); font-weight: 600;
+}
+/* plays in place (ARA, not printed) vs written into the timeline */
+.clip__tag--virtual { background: transparent; color: var(--sona-sky); border: 1px dashed var(--sona-sky); }
+.clip__take {
+  position: absolute; left: 4px; bottom: 2px; font-size: 10px; color: #fff; background: rgba(0,0,0,.45);
+  padding: 0 4px; border-radius: 2px;
+}
+.clip--sona { background: #2c355e; border-color: var(--sona-sky); cursor: default; }
+.lane.is-drop, .drop-new.is-drop { background: rgba(153,171,255,.12); }
+.drop-new {
+  height: 40px; margin: 6px 8px; border: 1px dashed #3a3e43; border-radius: 3px; display: none;
+  align-items: center; justify-content: center; color: var(--host-text-dim); font-size: 11px;
+}
+body.is-dragging .drop-new { display: flex; }
+.host__playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: #f0f0f0; pointer-events: none; }
+
+/* Plugin window as hosted */
+.plug-window {
+  position: absolute; right: 32px; bottom: 32px; z-index: 10;
+  border-radius: 6px; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,.55);
+  border: 1px solid #3a3e43; background: var(--bg);
+}
+.plug-window__chrome {
+  height: 24px; display: flex; align-items: center; gap: 10px; padding: 0 8px;
+  background: #2b2e32; color: var(--host-text-dim); font-size: 11px; cursor: move; user-select: none;
+}
+.chrome-dots { display: inline-flex; gap: 6px; }
+.chrome-dots i { width: 10px; height: 10px; border-radius: 50%; background: #4a4e53; display: block; }
+
+/* =========================================================
+   SONA plugin UI
+   ========================================================= */
+.sona {
+  width: 480px; height: 360px; min-width: 420px; min-height: 330px; max-width: 900px; max-height: 640px;
+  resize: both; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 0 var(--space-4) var(--space-2);
+  background: var(--bg); color: var(--text-primary);
+  font-family: var(--font); font-size: var(--fs-ui); line-height: var(--lh-ui);
+  -webkit-font-smoothing: antialiased;
+}
+.sona button { font-family: var(--font); }
+
+/* Header */
+.s-header { height: 32px; flex: none; display: flex; align-items: center; justify-content: space-between; }
+.s-brand { display: flex; align-items: center; gap: var(--space-3); }
+.s-brand__mark { height: 14px; width: auto; display: block; }
+.s-brand__name { font-size: var(--fs-ui); font-weight: 500; color: var(--text-primary); letter-spacing: .01em; }
+.s-header__links { display: flex; gap: var(--space-2); }
+
+/* Tertiary link (brand: underlined text link) */
+.link {
+  background: none; border: 0; color: var(--text-secondary); cursor: pointer;
+  font: 400 var(--fs-meta)/var(--lh-meta) var(--font);
+  text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  padding: 4px 4px; min-height: 24px;
+}
+.link:hover { color: var(--text-primary); }
+.link:disabled { opacity: .4; cursor: default; }
+
+/* Clip chip */
+.s-clip {
+  flex: none; border: 1px solid var(--border-subtle); background: var(--surface-1);
+  border-radius: var(--radius-box); padding: 6px var(--space-3) 6px; margin-bottom: var(--space-3);
+}
+.s-clip__row { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.voice-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--actor); flex: none; }
+.s-clip__who { color: var(--actor); font-weight: 600; font-size: var(--fs-meta); letter-spacing: .08em; }
+.s-clip__meta { color: var(--text-secondary); font-size: var(--fs-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+.s-clip__lock { color: var(--text-muted); display: inline-flex; }
+.s-clip__lock svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.s-clip__text { margin: 2px 0 0 18px; color: var(--text-muted); font-size: var(--fs-meta); line-height: var(--lh-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-clip[data-warn="true"] { border-color: var(--warning); }
+.s-clip[data-warn="true"] .s-clip__meta { color: var(--warning); }
+
+/* Icon button */
+.icon-btn {
+  width: 24px; height: 24px; flex: none; display: inline-grid; place-items: center;
+  background: none; border: 0; color: var(--text-secondary); cursor: pointer; border-radius: var(--radius-box);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+.icon-btn svg { width: 14px; height: 14px; fill: currentColor; }
+.icon-btn:disabled { opacity: .3; cursor: default; background: none; }
+.icon-btn[data-playing="true"] { color: var(--actor); }
+
+/* Work area */
+.s-work { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: var(--space-3); }
+/* Once there is a read / take, the strips sit right under the clip chip — the eye goes clip → read → take */
+.sona[data-state="review"] .s-work,
+.sona[data-state="rendering"] .s-work,
+.sona[data-state="takes"] .s-work,
+.sona[data-state="applied"] .s-work { justify-content: flex-start; padding-top: var(--space-2); }
+.work-empty { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+.work-empty__title { font-size: var(--fs-line); line-height: var(--lh-line); font-weight: 500; margin: 0; }
+.work-empty__text { color: var(--text-secondary); margin: 0; max-width: 360px; font-size: var(--fs-ui); }
+
+/* "How it works" model: actor voice + your read -> take */
+.model { display: flex; align-items: center; gap: var(--space-3); color: var(--text-secondary); font-size: var(--fs-meta); margin-top: var(--space-2); }
+.model__item { display: inline-flex; align-items: center; gap: 6px; }
+.model__op { color: var(--text-muted); }
+.model .voice-dot { width: 8px; height: 8px; }
+.mic-ico { width: 14px; height: 14px; fill: none; stroke: var(--you); stroke-width: 1.5; flex: none; }
+
+
+/* Record control */
+.rec { display: flex; align-items: center; gap: var(--space-4); }
+.rec-btn {
+  width: 44px; height: 44px; border-radius: 50%; flex: none; cursor: pointer; padding: 0;
+  border: 2px solid var(--accent); background: transparent; display: grid; place-items: center;
+  transition: transform var(--dur-2) var(--ease);
+}
+.rec-btn::after { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); transition: border-radius var(--dur-2) var(--ease); }
+.rec-btn:disabled { opacity: .4; cursor: default; transform: none; }
+.rec-btn[data-mode="armed"] { animation: blink 1s steps(1) infinite; }
+.rec-btn[data-mode="recording"] { background: var(--accent); }
+.rec-btn[data-mode="recording"]::after { background: var(--on-accent); border-radius: 2px; width: 12px; height: 12px; }
+@keyframes blink { 50% { opacity: .25; } }
+.rec__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rec__title { font-size: var(--fs-line); line-height: var(--lh-line); font-weight: 500; }
+.rec__sub { color: var(--text-secondary); font-size: var(--fs-meta); }
+.rec__mic { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: var(--fs-meta); }
+.rec__count { font-size: 28px; line-height: 1; font-weight: 500; color: var(--accent); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; }
+.rec__time { font-size: var(--fs-line); font-weight: 500; }
+.rec__time .lamp { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 6px; vertical-align: 1px; }
+.rec__time small { color: var(--text-muted); font-size: var(--fs-meta); font-weight: 400; }
+
+/* Centered record block: dot ring + button on top, text below */
+.rec--stack { flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.rec--stack .rec__mic { justify-content: center; margin-top: 2px; }
+.rec--stack .rec__sub { display: inline-flex; align-items: center; gap: 6px; }
+.rec--locked .rec-stage { opacity: .45; }
+.rec-stage { position: relative; width: 100px; height: 100px; flex: none; }
+.rec-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rec-stage .rec-btn { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; }
+/* Hover micro-animation: the lamp grows a step, the ring arms outward (JS, stepped) */
+.rec-btn[data-act="record"]:hover:not(:disabled)::after,
+.rec-btn[data-act="record"]:focus-visible::after { transform: scale(1.18); }
+.rec-btn::after { transition: transform var(--dur-2) steps(2, end), border-radius var(--dur-2) var(--ease); }
+.rec-btn[data-act="record"]:active:not(:disabled) { transform: scale(.96); }
+.rec-btn__count { font: 500 20px/1 var(--font); color: var(--accent); }
+.rec-btn[data-mode="armed"]::after { display: none; }
+.rec-btn[data-mode="armed"] { animation: none; }
+
+/* Count-in: only the digits */
+.rec__bigcount { font: 500 64px/1 var(--font); color: var(--text-primary); letter-spacing: -.02em; }
+/* Recording: stop + timer on one row, the live read strip below */
+.rec--row { justify-content: center; gap: var(--space-4); }
+.rec--row .rec-btn { width: 40px; height: 40px; }
+.rec__or { color: var(--text-muted); font-size: var(--fs-meta); margin: 6px 0 2px; }
+.btn--file { display: inline-flex; align-items: center; gap: 8px; }
+.btn--sm { height: 24px; padding: 0 10px; gap: 6px; font-size: var(--fs-meta); margin-left: var(--space-2); }
+.btn--file .mic-ico { stroke: var(--text-secondary); }
+.btn--file:disabled { opacity: .4; cursor: default; }
+
+/* Read longer / shorter than the original */
+.strip__label .num.warn { color: var(--warning); cursor: help; }
+
+/* Take label: two lines — "Take 1 · 3.0 s ✓" and the voice in grey */
+.strip__lines { display: flex; flex-direction: column; gap: 1px; min-width: 0; line-height: 16px; }
+.strip__lines > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.strip__sub { font-size: var(--fs-caption); color: var(--text-muted); }
+.verify { color: var(--text-muted); font-size: var(--fs-caption); cursor: help; }
+.is-rendering .strip__sub { color: var(--text-secondary); }
+
+/* Primary while rendering: progress ring + word, not clickable */
+.btn--busy { cursor: default; display: inline-flex; align-items: center; gap: 8px; }
+.btn--busy:hover { background: var(--accent) !important; }
+.btn-ring { width: 14px; height: 14px; transform: rotate(-90deg); flex: none; }
+.btn-ring circle { fill: none; stroke-width: 2; }
+.btn-ring__bg { stroke: rgba(0, 14, 22, .25); }
+.btn-ring__fg { stroke: var(--on-accent); transition: stroke-dasharray var(--dur-3) linear; }
+
+/* Strips (your read / take) */
+.strip { display: grid; grid-template-columns: 112px 1fr auto; align-items: center; gap: var(--space-3); min-height: 36px; }
+.strip__label { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--fs-meta); color: var(--text-secondary); white-space: nowrap; }
+.strip__label b { font-weight: 500; color: var(--text-primary); }
+.strip--take .strip__label b { color: var(--actor); }
+.strip canvas { width: 100%; height: 42px; display: block; }
+.strip__tools { display: flex; gap: 2px; align-items: center; }
+.strip--live canvas { height: 42px; }
+
+/* Level meter (dot ladder) */
+.meter { display: flex; gap: 3px; align-items: center; }
+.meter i { width: 4px; height: 4px; border-radius: 50%; background: var(--border-subtle); display: block; }
+.meter i.on { background: var(--text-primary); }
+.meter i.peak { background: var(--accent); }
+
+/* Progress dots (stepped) */
+.progress-dots { display: flex; gap: 3px; }
+.progress-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--border-subtle); display: block; }
+.progress-dots i.on { background: var(--actor); }
+
+/* Error box */
+.err {
+  display: flex; gap: var(--space-3); align-items: flex-start; background: var(--error-surface);
+  border-left: 2px solid var(--accent); padding: var(--space-3); border-radius: var(--radius-box);
+  font-size: var(--fs-meta); line-height: var(--lh-meta); color: var(--text-primary);
+}
+.err svg { width: 14px; height: 14px; fill: none; stroke: var(--accent); stroke-width: 1.5; flex: none; margin-top: 1px; }
+.err p { margin: 0; }
+.err .muted { color: var(--text-secondary); }
+
+/* Status line */
+.s-status {
+  flex: none; margin: var(--space-3) 0 0; min-height: var(--lh-meta);
+  font-size: var(--fs-meta); line-height: var(--lh-meta); color: var(--text-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-status .actor { color: var(--actor); }
+.s-status .ok { color: var(--text-primary); }
+.s-status .err-text { color: var(--accent); }
+.s-status .link { padding: 0 2px; min-height: 0; vertical-align: baseline; }
+
+.s-substatus {
+  flex: none; margin: 0; font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.s-substatus .warn { color: var(--warning); }
+
+/* Takes row */
+.s-takes { flex: none; display: flex; align-items: center; gap: var(--space-3); height: 28px; margin-bottom: var(--space-2); }
+.s-takes__label { color: var(--text-muted); font-size: var(--fs-meta); }
+.s-takes__chips { display: flex; gap: var(--space-2); align-items: center; }
+.s-takes__orig { margin-left: auto; }
+.chip {
+  height: 24px; min-width: 32px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--border-subtle); border-radius: var(--radius-box);
+  color: var(--text-primary); cursor: pointer; font: 500 var(--fs-ui)/1 var(--font); font-variant-numeric: tabular-nums;
+}
+.chip:hover { border-color: var(--border-strong); }
+.chip__dot { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--actor); flex: none; }
+.chip[aria-pressed="true"] { border-color: var(--accent); }
+.chip[aria-pressed="true"] .chip__dot { background: var(--accent); border-color: var(--accent); }
+.chip[data-status="rendering"] .chip__dot { border-color: var(--actor); animation: blink .8s steps(1) infinite; }
+.chip[data-status="failed"] .chip__dot { border-color: var(--accent); border-style: dashed; }
+.chip[data-status="failed"] { color: var(--accent); }
+.chip__tick { width: 10px; height: 10px; fill: none; stroke: var(--text-primary); stroke-width: 2; }
+.chip--add { color: var(--text-secondary); min-width: 24px; padding: 0 6px; }
+
+/* Action row */
+.s-actions { flex: none; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); height: 40px; }
+.s-actions__left { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.btn {
+  height: var(--control-h); padding: 0 var(--space-4); border-radius: var(--radius-box); cursor: pointer;
+  font: 500 var(--fs-ui)/1 var(--font); white-space: nowrap;
+  transition: background var(--dur-1) var(--ease);
+}
+.btn--primary { background: var(--accent); color: var(--on-accent); border: 0; }
+.btn--primary:hover:not(:disabled) { background: var(--accent-hover); }
+.btn--primary:active:not(:disabled) { background: var(--accent-pressed); }
+.btn--primary:disabled { opacity: .4; cursor: default; }
+.btn--secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border-strong); }
+.btn--secondary:hover { background: var(--surface-2); }
+.drag-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: var(--control-h); padding: 0 var(--space-3);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-box); color: var(--text-secondary);
+  font-size: var(--fs-meta); cursor: grab; user-select: none; white-space: nowrap;
+}
+.drag-chip svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+
+/* Drop an existing recording onto the plugin */
+.sona { position: relative; }
+.s-dropover {
+  display: none; position: absolute; inset: 40px 12px 12px; z-index: 5;
+  align-items: center; justify-content: center; text-align: center;
+  border: 1.5px dashed var(--text-secondary); border-radius: var(--radius-box);
+  background: rgba(0, 14, 22, .88); color: var(--text-primary); font-size: var(--fs-line); font-weight: 500;
+  pointer-events: none;
+}
+.sona.is-file-drop .s-dropover { display: flex; }
+
+/* Footer */
+.s-footer {
+  flex: none; height: 22px; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  color: var(--text-muted); font-size: var(--fs-caption); line-height: var(--lh-caption);
+  border-top: 1px solid var(--border-subtle);
+}
+.s-footer { justify-content: flex-end; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition-duration: 0ms !important; }
+}
+
+/* Direction: what to change, described by the result (chosen up front) */
+.s-dir { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin-bottom: var(--space-3); }
+.s-dir[hidden] { display: none; }
+.s-dir__opt {
+  display: grid; grid-template-columns: 10px 1fr; column-gap: 8px; align-items: center; text-align: left;
+  padding: 5px var(--space-3); min-height: 38px; cursor: pointer;
+  background: transparent; border: 1px solid var(--border-subtle); border-radius: var(--radius-box); color: var(--text-secondary);
+  transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.s-dir__opt::before {
+  content: ""; grid-row: 1 / span 2; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--border-strong);
+}
+.s-dir__opt b { font: 500 var(--fs-ui)/var(--lh-ui) var(--font); color: var(--text-secondary); }
+.s-dir__opt span { grid-column: 2; font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--text-muted); }
+.s-dir__opt:hover:not(:disabled) { border-color: var(--border-strong); }
+.s-dir__opt[aria-checked="true"] { background: var(--surface-2); border-color: var(--border-strong); }
+.s-dir__opt[aria-checked="true"]::before { background: var(--accent); border-color: var(--accent); }
+.s-dir__opt[aria-checked="true"] b { color: var(--text-primary); }
+.s-dir__opt:disabled { opacity: .4; cursor: default; }
+.s-dir__opt:focus-visible { outline: 1px solid var(--focus-ring); outline-offset: 1px; }
+
+/* Voice: the input is a recording of the new voice, so the drop target is the main action */
+.voice-drop {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; width: 100%;
+  padding: var(--space-5) var(--space-4); cursor: pointer; font-family: var(--font);
+  background: var(--surface-1); color: var(--text-primary);
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-box);
+  transition: border-color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+.voice-drop:hover, .voice-drop:focus-visible { border-color: var(--text-secondary); background: var(--surface-2); outline: none; }
+.voice-drop__icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: var(--space-3);
+  border: 1px solid var(--border-strong); border-radius: 50%; }
+.voice-drop__icon svg { width: 18px; height: 18px; fill: none; stroke: var(--text-secondary); stroke-width: 1.3; }
+.voice-drop:hover .voice-drop__icon svg { stroke: var(--text-primary); }
+
+/* Voice: SONA voices as the second path (list from the client's screenshots) */
+.sona[data-state="ready"] .voice-drop { padding: var(--space-4); }
+.sona[data-state="ready"] .voice-drop__icon { width: 32px; height: 32px; margin-bottom: var(--space-2); }
+.voice-lib { position: relative; display: flex; align-items: center; justify-content: center; gap: var(--space-3); }
+.voice-lib .rec__or { margin: 0; }
+.voice-lib__btn { margin-left: 0; }
+.voice-lib__btn .mic-ico { stroke: var(--text-secondary); }
+.chev { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; margin-left: 2px; }
+.voice-menu {
+  position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); z-index: 5;
+  width: 280px; max-height: 210px; overflow: auto; padding: var(--space-2) 0;
+  background: var(--surface-1); border: 1px solid var(--border-strong); border-radius: var(--radius-box);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45);
+}
+.voice-menu__group { display: block; padding: 6px var(--space-4) 2px; font-size: var(--fs-caption); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.voice-menu__item {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  min-height: 28px; padding: 0 var(--space-4); background: none; border: 0; cursor: pointer; text-align: left;
+  color: var(--text-primary); font: 400 var(--fs-ui)/var(--lh-ui) var(--font);
+}
+.voice-menu__item:hover, .voice-menu__item:focus-visible { background: var(--surface-2); outline: none; }
+.voice-menu__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.voice-menu__name small, .voice-pick .muted { color: var(--text-muted); font-size: var(--fs-meta); }
+.tag { flex: none; font-size: 10px; line-height: 16px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary);
+  border: 1px solid var(--border-subtle); border-radius: var(--radius-box); padding: 0 5px; }
+.strip--lib .voice-pick { display: flex; align-items: center; gap: var(--space-3); min-width: 0; height: 28px; }
+.strip--lib .voice-pick b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
