@@ -933,3 +933,22 @@ body.is-dragging .drop-new { display: flex; }
 .s-result:has(> #takesRow:not([hidden])) { justify-content: flex-start; padding-top: 8px; }
 .s-result:has(> #takesRow:not([hidden])) .s-work { flex: none; margin-top: 4px; }
 .trow__dur.warn, .trow__dur .warn { color: var(--warning); }
+
+/* v2.4 — blocking states (clip too long, mic off) use the same centred empty state as "No clip selected":
+   amber icon, title, one line of help. No red boxes: Burn stays for actions and live states. */
+.work-empty__icon svg { width: 20px; height: 20px; fill: none; stroke: var(--warning); stroke-width: 1.4; stroke-linecap: round; display: block; }
+.work-empty--warn { gap: 6px; }
+.work-empty--warn .work-empty__title { margin-top: 2px; }
+.s-line[data-warn="true"] .s-line__meta { color: var(--text-muted); }
+.s-line__meta .warn { color: var(--warning); }
+/* the line keeps its column even when there is no play button (clip too long) */
+.s-line > .s-line__meta, .s-line > .s-line__text { grid-column: 1; }
+
+/* blocking states: the same ringed circle as "Record your read" / "Choose a SONA voice", amber "!" inside, not clickable */
+.recbtn--note { cursor: default; box-shadow: 0 0 0 5px rgba(242,241,237,.03), 0 0 0 10px rgba(242,241,237,.02); }
+.recbtn--note::after { content: none; }
+.recbtn--note:hover { border-color: var(--border-strong); }
+.recbtn--note svg { width: 18px; height: 18px; fill: none; stroke: var(--warning); stroke-width: 1.4; stroke-linecap: round; }
+.work-empty--warn { gap: 0; }
+.work-empty--warn .work-empty__title { margin-top: 16px; }
+.work-empty--warn .work-empty__text { margin-top: 6px; }

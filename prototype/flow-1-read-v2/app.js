@@ -936,9 +936,9 @@
       const tooLong = c.dur > MAX_SECONDS;
       el.clip.dataset.warn = String(tooLong);
       el.clipWho.textContent = c.who.toUpperCase();
-      el.clipMeta.textContent = tooLong ? ` · 1:12 of max 1:00 · ${c.name}` : ` · ${c.dur.toFixed(1)} s · ${c.name}`;
+      el.clipMeta.innerHTML = tooLong ? ` · <span class="warn" title="SONA works with lines up to 1:00">1:12</span> · ${c.name}` : ` · ${c.dur.toFixed(1)} s · ${c.name}`;
       el.clipMeta.title = c.tc ? `${c.name} · ${c.tc}` : c.name;
-      const text = c.text || 'Not transcribed: the clip is too long';
+      const text = c.text || 'Not transcribed';
       el.clipText.textContent = text;
       el.clipFull.firstElementChild.textContent = `“${text}”`;
       el.clip.dataset.trunc = String(el.clipText.scrollWidth > el.clipText.clientWidth);
@@ -1003,12 +1003,17 @@
           <p class="work-empty__text">Select a dialogue clip in ${H().app}. Then change how the line is said, or whose voice says it.</p>
           </div>`;
       case 'toolong':
-        return `<div class="err">${ICON.alert}<div><p>This clip is 1:12. SONA works with lines of up to 1:00.</p>
-          <p class="muted">Split it in ${H().app} (${H().split}) and select one part.</p></div></div>`;
+        return `<div class="work-empty work-empty--warn">
+          <span class="recbtn recbtn--note" aria-hidden="true">${ICON.alert}</span>
+          <p class="work-empty__title">This clip is too long</p>
+          <p class="work-empty__text">SONA works with lines up to 1 minute. Split it into shorter parts.</p>
+          </div>`;
       case 'micdenied':
-        return `<div class="err">${ICON.alert}<div><p>SONA can’t hear your microphone.</p>
-          <p class="muted">Allow microphone access for ${H().app} in System Settings › Privacy &amp; Security › Microphone, then try again.</p></div></div>
-          <div><button class="link" data-act="retry-mic">Try again</button></div>`;
+        return `<div class="work-empty work-empty--warn">
+          <span class="recbtn recbtn--note" aria-hidden="true">${ICON.alert}</span>
+          <p class="work-empty__title">SONA can’t hear your microphone</p>
+          <p class="work-empty__text">Allow microphone access for ${H().app} in System Settings.</p>
+          </div>`;
       case 'importing':
         return `<div class="work-empty"><p class="work-empty__title">Reading “${S.importName}”…</p><span class="progress-dots">${'<i class="on"></i>'.repeat(3)}${'<i></i>'.repeat(5)}</span></div>`;
       case 'ready': {
@@ -1152,8 +1157,8 @@
     const sel = S.takes.find((t) => t.n === S.selected);
     switch (S.state) {
       case 'noclip': return '';
-      case 'toolong': return '<span class="err-text">Too long to work with. Select a shorter clip.</span>';
-      case 'micdenied': return `<span class="err-text">Microphone access is off for ${H().app}.</span>`;
+      case 'toolong': return ''; // said once, in the middle
+      case 'micdenied': return '';
       case 'ready': return '';
       case 'importing': return 'Trimming silence and checking the length…';
       case 'countin': return S.guidePhase ? 'Playing the original · then 3 beeps' : '';
@@ -1291,7 +1296,10 @@
     p.disabled = false; p.title = ''; p.hidden = false; p.removeAttribute('aria-disabled');
     p.className = 'btn btn--primary';
     switch (st) {
-      case 'noclip': case 'toolong': case 'micdenied': case 'importing':
+      case 'micdenied':
+        p.textContent = 'Try again'; p.title = 'Check the microphone again';
+        break;
+      case 'noclip': case 'toolong': case 'importing':
         p.hidden = true; break; // no disabled “Render take” before there is a read
       case 'ready':
         p.hidden = true;
@@ -1478,6 +1486,7 @@
     switch (S.state) {
       case 'countin': cancelRecording(); break;
       case 'recording': stopRecording(); break;
+      case 'micdenied': S.state = 'ready'; render(); break;
       case 'review': renderTake(S.takes.find((t) => t.n === S.selected && t.status === 'review')); break; // Render (the read needed a look)
       case 'rendering': break; // busy — Stop is next to it
       case 'takes': applyTake(); break;
