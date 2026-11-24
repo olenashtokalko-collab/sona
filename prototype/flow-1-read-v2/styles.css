@@ -952,3 +952,19 @@ body.is-dragging .drop-new { display: flex; }
 .work-empty--warn { gap: 0; }
 .work-empty--warn .work-empty__title { margin-top: 16px; }
 .work-empty--warn .work-empty__text { margin-top: 6px; }
+
+/* ===== v2.5 — brand check: flat square boxes, two-tone dots (warnings stay amber) ===== */
+
+/* toggle subtitles: quieter grey, the same for both options (the title carries the selection) */
+.dirx__opt small, .dirx__opt[aria-checked="true"] small { color: var(--text-muted); }
+
+/* v2.5 · variant 1 — toggle is a flat, square box like every other: no glass, blur, sheen or glow;
+   the selection slides and gets the same Offwhite frame as the selected take */
+.s-dir.dirx { border-radius: var(--radius-box); background: var(--surface-1); border: 1px solid var(--border-subtle); box-shadow: none; }
+.dirx__opt { border-radius: var(--radius-box); }
+.dirx__glide { border-radius: var(--radius-box); background: rgba(242,241,237,.05); border: 1px solid rgba(242,241,237,.7);
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+.dirx__glide.is-moving, .dirx__glide.is-moving::after { animation: none; }
+.dirx__opt[aria-checked="true"] .dirx__dot { box-shadow: none; }
+/* bookmark star next to SONA voices: Offwhite (warnings stay amber) */
+.voice-menu__star { color: var(--text-primary); }

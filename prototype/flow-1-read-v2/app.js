@@ -39,8 +39,8 @@
   // Two directions of the same engine. Chosen up front; each keeps its own records and takes per clip.
   const DIRS = {
     // Title = what changes, in plain words. Sub = what the take will be made of.
-    tone: { title: 'Change how it’s said', keeps: () => 'your intonation' },
-    voice: { title: 'Change who says it', keeps: () => 'another voice' },
+    tone: { title: 'Change how it’s said', keeps: () => 'Your intonation' },
+    voice: { title: 'Change who says it', keeps: () => 'Another voice' },
   };
   // SONA voices, as listed in the client's screenshots (full panel › SONA voices; Mini › Settings › Voice)
   const LIBRARY = [
@@ -213,7 +213,8 @@
       const level = Math.round(Math.min(1, p) * half);   // 0..3, snapped to whole dots
       const x = c * pitch + pitch / 2;
       const dim = opts.dimRest;
-      const played = progress === null ? dim === undefined : c / cols <= progress;
+      // neutralRest (brand: two-tone dots): at rest the whole line is Diaslide; only what has played takes the colour
+      const played = progress === null ? dim === undefined && !opts.neutralRest : c / cols <= progress;
       const isHead = dim === undefined && progress !== null && Math.floor(progress * cols) === c && progress > 0;
       g.fillStyle = isHead ? col('--sona-offwhite') : played || dim !== undefined ? color : unplayed;
       g.globalAlpha = isHead || played ? 1 : dim !== undefined ? dim : 0.35;
@@ -240,7 +241,7 @@
           drawDots(cv, src, col('--sona-sky'), null, { ghost: { band: (t.phase || 0) % (cols + 8) - 4 } });
         } else if (t && t.peaks) {
           const rv = t.revealAt ? Math.min(1, Math.floor(((performance.now() - t.revealAt) / 320) * 8) / 8) : 1;
-          drawDots(cv, t.peaks, col('--sona-sky'), progressOf('take', id), rv < 1 ? { reveal: rv, dimRest: 0.4 } : { dimRest: 0.4 });
+          drawDots(cv, t.peaks, col('--sona-sky'), progressOf('take', id), rv < 1 ? { reveal: rv, dimRest: 0.4 } : { neutralRest: true });
         }
       } else if (kind === 'readmini') {
         const r = S.reads[id]; if (r && r.peaks) drawMiniDots(cv, r.peaks, col('--you'), progressOf('read', id));

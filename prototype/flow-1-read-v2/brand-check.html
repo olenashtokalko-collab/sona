@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand check · before / after</title>
+<style>
+  @font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Regular.ttf"); font-weight: 400; }
+  @font-face { font-family: "Inter Display"; src: url("assets/fonts/InterDisplay-Medium.ttf"); font-weight: 500; }
+  :root { --bg: #000e16; --surface: #0b1820; --line: #2a3740; --text: #f2f1ed; --muted: #8e9192; --diaslide: #c9c7bd; --burn: #ff4519; --sky: #99abff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 400 15px/1.5 "Inter Display", Inter, system-ui, sans-serif; }
+  main { max-width: 1240px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-weight: 500; font-size: 32px; line-height: 1.15; margin: 0 0 8px; }
+  .lead { color: var(--diaslide); margin: 0 0 24px; max-width: 760px; }
+  .palette { display: flex; gap: 0; margin: 0 0 40px; border: 1px solid var(--line); width: fit-content; max-width: 100%; flex-wrap: wrap; }
+  .sw { padding: 10px 14px 8px; min-width: 120px; font-size: 12px; }
+  .sw b { display: block; font-weight: 500; }
+  section { border-top: 1px solid var(--line); padding: 28px 0 8px; }
+  h2 { font-weight: 500; font-size: 20px; margin: 0 0 4px; }
+  h2 span { color: var(--muted); font-weight: 400; margin-right: 8px; }
+  .why { color: var(--diaslide); margin: 0 0 16px; max-width: 820px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  figure { margin: 0; }
+  figcaption { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+  figcaption i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .after figcaption { color: var(--text); }
+  .after figcaption i { background: var(--burn); }
+  figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--surface); }
+  ul.changes { margin: 12px 0 0; padding-left: 18px; color: var(--diaslide); font-size: 14px; }
+  @media (max-width: 760px) { .pair { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Brand check: before / after</h1>
+  <p class="lead">Prototype v2 checked against the SONA Brand Guide 2026. Flat square boxes and two-tone dot waveforms, as in the brand’s UI pages.</p>
+  <div class="palette" aria-label="SONA palette">
+    <div class="sw" style="background:#000e16;color:#f2f1ed;border-right:1px solid #2a3740"><b>Blue Moon</b>#000e16 · background</div>
+    <div class="sw" style="background:#f2f1ed;color:#000e16"><b>Offwhite 12</b>#f2f1ed · text, selection</div>
+    <div class="sw" style="background:#c9c7bd;color:#000e16"><b>Diaslide</b>#c9c7bd · secondary, rest</div>
+    <div class="sw" style="background:#ff4519;color:#000e16"><b>Burn</b>#ff4519 · actions, “!”</div>
+    <div class="sw" style="background:#99abff;color:#000e16"><b>Sky</b>#99abff · actor’s voice</div>
+  </div>
+
+
+
+  <section>
+    <h2><span>01</span>Flat toggle and two-tone dots</h2>
+    <p class="why">The toggle becomes a flat, square box: no glass, blur, sheen or glow, and the selection gets the same Offwhite frame as the selected take. The take waveform rests in Diaslide grey; only what has played turns Sky, like the brand’s player.</p>
+    <div class="pair">
+      <figure><figcaption><i></i>Before</figcaption><img src="brand-check/before-takes.png" alt="Before: rounded glass toggle, take waveform all in Sky"></figure>
+      <figure class="after"><figcaption><i></i>After</figcaption><img src="brand-check/variant1-takes.png" alt="Variant 1: flat square toggle with an Offwhite frame, grey waveform with the played part in Sky"></figure>
+    </div>
+  </section>
+</main>
+</body>
+</html>
