@@ -7,12 +7,11 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="sona-v3.css">
   <style>
-    /* Prototype version switch (not part of the product) */
-    .proto-bar { align-items: center; }
-    .proto-ver { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--host-border); border-radius: 4px; align-self: center; }
-    .proto-ver a { padding: 2px 8px; border-radius: 3px; color: var(--host-text-dim); text-decoration: none; font-weight: 500; }
-    .proto-ver a:hover { color: #e6e7e8; }
-    .proto-ver a[aria-current="page"] { background: #2a2e33; color: #e6e7e8; }
+    /* Prototype version switch (not part of the product): same place and look in every version */
+    .proto-ver{position:fixed;top:8px;right:16px;z-index:1000;display:inline-flex;gap:2px;margin:0;padding:2px;border:0;border-radius:6px;background:rgba(255,255,255,.06);font:500 12px/18px system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:0}
+    .proto-ver a{padding:3px 10px;border-radius:4px;color:rgba(230,231,232,.55);text-decoration:none;transition:background 140ms,color 140ms}
+    .proto-ver a:hover{color:#e6e7e8}
+    .proto-ver a[aria-current="page"]{background:rgba(255,255,255,.14);color:#e6e7e8}
   </style>
 </head>
 <body>
@@ -20,7 +19,7 @@
   <!-- Prototype bar (not part of the product) -->
   <header class="proto-bar">
     <div class="proto-bar__title"><strong>SONA Read</strong></div>
-    <nav class="proto-ver" aria-label="Prototype version"><a href="../flow-1-read-v2/index.html" data-port="5174">V1</a><a href="../flow-1-read-v3/index.html" data-port="5176" aria-current="page">V2</a></nav>
+    <nav class="proto-ver" aria-label="Prototype version"><a href="../flow-1-read-v2/index.html" data-port="5174">V1</a><a href="../flow-1-read-v3/index.html" data-port="5176" aria-current="page">V2</a><a href="../plugin-v3/index.html" data-port="5178">V3</a></nav>
   </header>
 
   <!-- Fake host (DAW) -->
@@ -129,9 +128,9 @@
   </aside>
 
   <script>
-    // Each version also runs on its own local server (5174 = v2, 5176 = v3): point the switch there
+    // Each version also runs on its own local server (5174 = V1, 5176 = V2, 5178 = V3): point the switch there
     (function () {
-      if (location.port !== '5174' && location.port !== '5176') return;
+      if (!['5174', '5176', '5178'].includes(location.port)) return;
       document.querySelectorAll('.proto-ver a').forEach(function (a) { a.href = location.protocol + '//' + location.hostname + ':' + a.dataset.port + '/'; });
     })();
   </script>

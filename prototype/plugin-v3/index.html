@@ -1,0 +1,1178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SONA · speech-to-speech prototype V3</title>
+<style>
+@font-face{font-family:"Inter Display";src:url(brand/InterDisplay-Regular.ttf) format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:"Inter Display";src:url(brand/InterDisplay-Medium.ttf) format("truetype");font-weight:500;font-display:swap}
+@font-face{font-family:"Inter Display";src:url(brand/InterDisplay-SemiBold.ttf) format("truetype");font-weight:600;font-display:swap}
+</style>
+<style>
+:root{
+  color-scheme:dark;
+  /* SONA brand: Blue Moon #000e16 · Diaslide #c9c7bd · Offwhite #f2f1ed · Burn #ff4519 · Sky #99abff */
+  --moon:#000e16; --dia:#c9c7bd; --off:#f2f1ed; --burn:#ff4519; --sky:#99abff;
+  --plane:#0b0c0e; --s0:#111214;                              /* the host editor stays neutral */
+  --s1:#000e16; --s2:#071822; --s3:#0e212d;                  /* plugin: Blue Moon and two lifts */
+  --f1:rgba(214,224,245,.03); --f2:rgba(214,224,245,.055); --f3:rgba(214,224,245,.085); --f4:rgba(214,224,245,.13);
+  --i1:#f2f1ed; --i2:rgba(226,232,245,.68); --i3:rgba(190,201,224,.56); --i4:rgba(190,201,224,.28);  /* cool greys, tinted toward Sky */
+  --words:#99abff; --words-d:rgba(153,171,255,.22);   /* changed words: Sky */
+  --perf:#ff8a66;  --perf-d:rgba(255,138,102,.2);     /* your performance: Burn family */
+  --rec:#ff4519; --warn:#e8b56a; --warn-d:rgba(232,181,106,.1); --bad:#ff4519; --bad-d:rgba(255,69,25,.1); --good:#99abff;
+  --sh2:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.28);
+  --font:"Inter Display","Inter","Segoe UI Variable Text",system-ui,sans-serif;
+  --mono:"Inter Display","Inter",system-ui,sans-serif;
+  --out:cubic-bezier(.23,1,.32,1); --inout:cubic-bezier(.77,0,.175,1);
+  --pw:400px; --ph:720px;
+  interpolate-size:allow-keywords;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--plane);color:var(--i1);font:13px/1.45 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+body.resizing{cursor:nwse-resize;user-select:none} body.moving{cursor:grabbing;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;letter-spacing:inherit}
+button:disabled{cursor:default}
+:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(153,171,255,.7)!important;border-radius:8px}
+[hidden]{display:none!important}
+.num{font-family:var(--font);font-variant-numeric:tabular-nums;font-size:12px;letter-spacing:.01em}
+
+/* ───────── mock editor (context only) ───────── */
+.daw{position:fixed;inset:0;display:grid;grid-template-rows:44px 24px 1fr auto;background:var(--s0)}
+.transport{display:flex;align-items:center;gap:16px;padding:0 16px;color:var(--i3)}
+.transport .tc{font-size:14px;color:var(--i2)}
+.transport .dots{display:flex;gap:6px}.transport .dots i{width:8px;height:8px;border-radius:50%;background:var(--f4)}
+.ruler{display:grid;grid-template-columns:96px 1fr;color:var(--i4);font-size:10px}
+.ruler .ticks{display:flex;justify-content:space-between;padding:4px 8px 0}
+.tracks{position:relative;overflow:hidden}
+.track{display:grid;grid-template-columns:96px 1fr;height:56px}
+.track:nth-child(odd) .lane{background:var(--f1)}
+.track .name{padding:10px 12px;color:var(--i3);font-size:11px;font-weight:500}
+.track .name small{display:block;color:var(--i4);font-weight:400}
+.lane{position:relative}
+.clip{position:absolute;top:8px;bottom:8px;border-radius:6px;background:var(--f3);padding:4px 8px;overflow:hidden;color:var(--i3);font-size:10px;text-align:left;transition:background 140ms,color 140ms,transform 140ms var(--out)}
+.clip .mini{position:absolute;left:8px;right:8px;bottom:5px;height:12px;display:flex;align-items:center;gap:3px;overflow:hidden}
+.clip .mini i{flex:none;width:2px;height:100%;background:currentColor;opacity:.4;border-radius:1px;transform:scaleY(var(--h))}
+.clip.dx{background:rgba(255,255,255,.1);color:var(--i2)}
+@media (hover:hover){.clip.dx:hover{background:rgba(255,255,255,.16);color:var(--i1)}}
+.clip.dx:active{transform:scale(.98)}
+.clip.sel{background:rgba(255,69,25,.22);color:#ffd2c4}
+.clip.done::after{content:"";position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--burn)}
+.clip.pulse{animation:pulse 900ms var(--out)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(237,237,239,.45)}100%{box-shadow:0 0 0 10px rgba(237,237,239,0)}}
+.clip.invite{animation:invite 1.6s ease-in-out 2}
+@keyframes invite{50%{background:rgba(255,255,255,.2)}}
+.clip.dim{opacity:.55;pointer-events:none}
+.playhead{position:absolute;top:0;bottom:0;left:calc(96px + 41%);width:1px;background:rgba(255,255,255,.16);pointer-events:none}
+.demo{display:flex;align-items:center;gap:8px;padding:12px 16px;color:var(--i4);font-size:11px;flex-wrap:wrap}
+.demo b{font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-right:4px}
+.demo button{height:26px;padding:0 10px;border-radius:999px;background:var(--f2);color:var(--i3);transition:background 140ms,color 140ms}
+.demo button[aria-pressed="true"]{background:var(--f4);color:var(--i1)}
+
+/* ───────── floating plugin window ───────── */
+.plugin{position:fixed;left:var(--px,600px);top:var(--py,64px);width:var(--pw);height:auto;max-height:calc(100vh - 24px);min-width:320px;transition:height 260ms var(--out);border-radius:14px;overflow:visible;background:var(--s1);
+  box-shadow:0 0 0 1px rgba(242,241,237,.07),0 4px 12px rgba(0,0,0,.45),0 16px 48px rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:2;color:var(--i1);
+  container-type:inline-size;container-name:plug;animation:winin 320ms var(--out)}
+@keyframes winin{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.plugin.dragging{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.5),0 32px 72px rgba(0,0,0,.45)}
+.grip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:ew-resize;z-index:9;color:var(--i4);transition:color 140ms}
+.grip:hover,body.resizing .grip{color:var(--i2)}
+.grip svg{position:absolute;right:4px;bottom:4px}
+.head{display:flex;align-items:center;gap:10px;padding:12px 12px 0 20px;height:48px;flex:none;cursor:grab;user-select:none;min-width:0}
+.plugin.dragging .head{cursor:grabbing}
+.brand{display:flex;align-items:center;gap:8px;flex:none}
+.brand img{display:block}
+.clipname{color:var(--i3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;opacity:0;transform:translateY(3px);transition:opacity 200ms var(--out),transform 200ms var(--out)}
+.clipname.on{opacity:1;transform:none}
+.tools{margin-left:auto;display:flex;align-items:center;gap:2px;flex:none}
+.tbtn{height:28px;min-width:28px;padding:0 8px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--i3);font-size:12px;font-weight:500;transition:background 140ms,color 140ms}
+@media (hover:hover){.tbtn:hover{background:var(--f3);color:var(--i1)}}
+.tbtn[aria-expanded="true"]{background:var(--f3);color:var(--i1)}
+
+.pop{position:absolute;z-index:8;width:min(260px,calc(100% - 24px));background:var(--s1);border-radius:10px;box-shadow:0 0 0 1px rgba(214,224,245,.09),0 4px 12px rgba(0,0,0,.45),0 16px 40px rgba(0,0,0,.4);padding:4px;
+  opacity:0;transform:translateY(-4px) scale(.97);transform-origin:top right;pointer-events:none;transition:opacity 150ms ease-out,transform 180ms var(--out)}
+.pop.on{opacity:1;transform:none;pointer-events:auto}
+.pop .sec{padding:8px 8px 3px;font-size:11px;color:var(--i4);font-weight:500}
+.pop .sec:first-child{padding-top:5px}
+.pop .item{display:flex;width:100%;align-items:center;gap:9px;min-height:32px;padding:5px 8px;border-radius:6px;text-align:left;color:var(--i2);transition:background 120ms,color 120ms}
+.pop .item:hover{background:var(--f2);color:var(--i1)}
+.pop .item small{display:block;color:var(--i3);font-size:11px;line-height:1.3}
+.pop .item .tick{margin-left:auto;opacity:0;color:var(--i2);font-size:12px}
+.pop .item[aria-checked="true"]{color:var(--i1)} .pop .item[aria-checked="true"] .tick{opacity:1}
+.helpbox{right:12px;top:48px;padding:12px 14px;color:var(--i2);font-size:12px;line-height:1.6}
+.helpbox p+p{margin-top:8px}
+.helpbox b{color:var(--i1);font-weight:500}
+.helpbox .keys{color:var(--i3)}
+.links{gap:12px;padding-right:8px}
+.hlink{font-size:12px;color:var(--i3);text-decoration:underline;text-decoration-color:var(--i4);text-underline-offset:3px;transition:color 140ms,text-decoration-color 140ms}
+.hlink:hover,.hlink[aria-expanded="true"]{color:var(--i1);text-decoration-color:var(--i2)}
+.setbox{right:12px;top:48px}
+.setbox .acct{display:flex;align-items:center;gap:9px;padding:5px 8px;color:var(--i2)}
+.setbox .acct small{display:block;color:var(--i3);font-size:11px;line-height:1.3}
+
+.av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:600;flex:none;background:var(--off);color:var(--moon)}
+.av.lib{background:var(--sky)}
+.av.file{background:var(--f4);color:var(--i1)}
+
+.banner{margin:0 20px;border-radius:10px;background:var(--warn-d);color:var(--warn);font-size:12px;display:flex;gap:8px;align-items:center;overflow:hidden;flex:none;
+  max-height:0;opacity:0;padding:0 12px;transition:max-height 240ms var(--out),opacity 200ms,padding 240ms var(--out),margin 240ms var(--out)}
+.banner.on{max-height:60px;opacity:1;padding:10px 12px;margin-top:12px}
+.dot{width:7px;height:7px;border-radius:50%;flex:none;display:inline-block}
+
+.body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;position:relative;overflow:hidden;border-radius:0 0 14px 14px}
+.view:not(.on){position:absolute;left:0;right:0;top:0}
+.view{flex:1 1 auto;min-width:0;min-height:0;padding:14px 20px 20px;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;scrollbar-width:none;
+  opacity:0;transform:translateY(8px);visibility:hidden;pointer-events:none;transition:opacity 160ms ease-out,transform 160ms ease-out,visibility 0s 160ms}
+.view::-webkit-scrollbar{display:none}
+.view.on{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition:opacity 280ms var(--out) 60ms,transform 280ms var(--out) 60ms,visibility 0s}
+.h{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.muted{color:var(--i2)} .faint{color:var(--i3)}
+.center{margin:auto 0;display:flex;flex-direction:column;gap:10px;padding:48px 0 56px}
+.nudge{display:flex;align-items:center;gap:8px;color:var(--i3);margin-top:6px}
+.nudge svg{animation:nudge 1.8s ease-in-out infinite}
+@keyframes nudge{50%{transform:translateX(-4px)}}
+
+/* ───────── shared bits ───────── */
+.pbtn{width:30px;height:30px;border-radius:50%;background:var(--f3);display:grid;place-items:center;flex:none;color:var(--i1);transition:background 140ms,transform 140ms var(--out)}
+@media (hover:hover){.pbtn:hover{background:var(--f4)}}
+.pbtn:active{transform:scale(.92)}
+.ibtn{width:28px;height:28px;border-radius:8px;color:var(--i3);flex:none;display:grid;place-items:center;transition:background 140ms,color 140ms}
+@media (hover:hover){.ibtn:hover{background:var(--f3);color:var(--i1)}}
+.meter{display:block;height:23px;width:31px;flex:none;opacity:0;transition:opacity 200ms}
+.meter.live{opacity:1}
+.time{color:var(--i3);flex:none}
+
+/* ───────── the line (text is the timeline) ───────── */
+.listen{display:flex;align-items:center;gap:8px;color:var(--i3);font-size:12px;height:30px}
+.listen .chip{max-width:calc(100% - 110px)}
+.linebox{position:relative;margin:8px -10px 0;padding:6px 10px;overflow-y:auto;flex:0 1 auto;min-height:64px;max-height:min(320px,46vh)}
+.linebox,.rline{scrollbar-width:thin;scrollbar-color:rgba(214,224,245,.16) transparent}
+.linebox::-webkit-scrollbar,.rline::-webkit-scrollbar{width:4px}
+.linebox::-webkit-scrollbar-thumb,.rline::-webkit-scrollbar-thumb{background:rgba(214,224,245,.16);border-radius:4px}
+.linebox::-webkit-scrollbar-button,.rline::-webkit-scrollbar-button{display:none;height:0}
+#editView,.view[data-v="review"]{overflow:hidden}
+#editView>*:not(.linebox),.view[data-v="review"]>*:not(.rline){flex-shrink:0}
+.lw{position:relative}
+.bd,.ta,.bd2{font:400 clamp(18px,6.2cqi,25px)/1.5 var(--font);letter-spacing:-.02em;white-space:pre-wrap;overflow-wrap:break-word}
+.long .bd,.long .ta,.long .bd2{font-size:15px;line-height:1.65;letter-spacing:-.005em}
+.bd{color:var(--i1);pointer-events:none}
+.ta{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:none;background:transparent;color:transparent;caret-color:var(--i1);overflow:hidden;padding:0;cursor:text}
+.ta:focus-visible{box-shadow:none!important}
+.linebox.rest .ta{pointer-events:none}
+.linebox.rest{cursor:text}
+.bd s.del{color:var(--i4);text-decoration-thickness:1.5px;text-decoration-color:rgba(237,237,239,.35)}
+.ta::selection{background:rgba(237,237,239,.2);color:transparent}
+.bd span,.bd2 span{border-radius:4px;-webkit-box-decoration-break:clone;box-decoration-break:clone;transition:color 120ms,background 160ms}
+.bd .ins,.bd2 .ins{background:var(--words-d);box-shadow:0 0 0 2px var(--words-d)}
+.pc0{--pc:255,138,102}.pc1{--pc:153,171,255}.pc2{--pc:201,199,189}.pc3{--pc:255,184,156}.pc4{--pc:196,207,255}.pc5{--pc:226,214,190}
+.bd .perf,.bd2 .perf{background:rgba(var(--pc),.17);box-shadow:0 0 0 2px rgba(var(--pc),.17)}
+.bd .perf.hot,.bd2 .perf.hot{background:rgba(var(--pc),.38);box-shadow:0 0 0 2px rgba(var(--pc),.38)}
+.bd .perf.stale{background:var(--warn-d);box-shadow:0 0 0 2px var(--warn-d)}
+.quiet span{color:var(--i3)} .quiet .sung{color:var(--i1)}
+.was{font-size:12px;color:var(--i3);margin-top:8px;line-height:1.5}
+.was s{text-decoration-color:rgba(237,237,239,.45)}
+.gen .linebox{pointer-events:none}
+.gen .bd span{color:var(--i3)} .gen .bd .sung{color:var(--i1)}
+
+/* ───────── recipe rows: who says it / how it's said ───────── */
+.recipe{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+.rrow{background:none;border-radius:0;padding:0;display:flex;flex-direction:column;gap:10px;transition:opacity 200ms}
+.rhead{display:flex;align-items:center;gap:10px;min-width:0;min-height:30px}
+.rlabel{font-size:12px;color:var(--i3);width:84px;flex:none}
+.rval{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.chip{height:30px;padding:0 10px 0 5px;border-radius:999px;background:var(--f3);display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;font-weight:500;transition:background 140ms}
+@media (hover:hover){.chip:hover{background:var(--f4)}}
+.chip .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.chip .sub{color:var(--i3);font-weight:400}
+.chip svg.chev{color:var(--i3);flex:none}
+#voiceChip{background:transparent;color:var(--i1);margin-left:-5px}
+#voiceChip .t{color:var(--i1)}
+#voiceChip[aria-expanded="true"]{background:var(--f3)}
+@media (hover:hover){#voiceChip:hover{background:var(--f3)}}
+.asis{color:var(--i3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* Perform: a real button (same shape as .btn), not a pill/badge */
+.act{height:32px;padding:0 14px 0 11px;border-radius:8px;background:var(--f3);display:inline-flex;align-items:center;gap:7px;font-weight:500;color:var(--i1);flex:none;white-space:nowrap;cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(214,224,245,.16),inset 0 1px 0 rgba(255,255,255,.06),0 1px 2px rgba(0,0,0,.35);
+  transition:background 140ms,box-shadow 140ms,transform 140ms var(--out)}
+@media (hover:hover){.act:hover{background:var(--f4);box-shadow:inset 0 0 0 1px rgba(255,69,25,.55),inset 0 1px 0 rgba(255,255,255,.08),0 2px 6px rgba(0,0,0,.4)}}
+.act:active{transform:scale(.97);box-shadow:inset 0 0 0 1px rgba(255,69,25,.55)}
+.act .mic{flex:none;color:var(--burn)}
+.perfs{display:flex;flex-direction:column;gap:2px}
+.perf-row{display:flex;align-items:center;gap:8px;min-width:0;padding:4px 6px;margin:0 -6px;border-radius:10px;animation:pop 240ms var(--out);transition:background 140ms}
+.perf-row.hot .what b{color:var(--i1)}
+.perf-row .what b{color:var(--i2);transition:color 140ms}
+.perf-row .what{flex:1;min-width:0}
+.perf-row .what b{display:block;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.perf-row .what span{display:block;color:var(--i3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.perf-row .sw{width:9px;height:9px;border-radius:50%;background:rgb(var(--pc,224,181,131));flex:none;transition:transform 140ms var(--out)}
+.perf-row.hot .sw{transform:scale(1.3)}
+.perf-row.stale .what span{color:var(--warn)}
+.perf-row .ibtn{opacity:0;transition:opacity 140ms,background 140ms,color 140ms}
+.perf-row:hover .ibtn,.perf-row.hot .ibtn,.perf-row:focus-within .ibtn,.perf-row.stale .ibtn[data-redo]{opacity:1}
+@media (hover:none){.perf-row .ibtn{opacity:1}}
+.rnote{font-size:12px;color:var(--i3)}
+.rnote.warn{color:var(--warn)}
+@keyframes pop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+.gen .recipe{opacity:.45;pointer-events:none}
+
+/* ───────── messages, actions ───────── */
+.note{font-size:12px;color:var(--warn);margin-top:12px}
+.err{display:flex;gap:10px;align-items:flex-start;background:var(--bad-d);border-radius:12px;padding:12px 12px 12px 14px;margin-top:12px;animation:pop 220ms var(--out)}
+.err .dot{background:var(--bad);margin-top:6px}
+.err p{flex:1;min-width:0} .err small{display:block;color:var(--i2);font-size:12px}
+.actions{margin-top:auto;display:flex;align-items:center;gap:6px;padding-top:20px;min-width:0}
+.btn{height:36px;padding:0 14px;border-radius:8px;font-weight:500;position:relative;overflow:hidden;white-space:nowrap;flex:none;
+  transition:background 160ms,color 160ms,opacity 160ms,transform 140ms var(--out)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn.primary{background:var(--burn);color:var(--moon);padding:0 18px}
+@media (hover:hover){.btn.primary:not(:disabled):hover{background:#ff5a33}.btn.ghost:hover{background:var(--f2);color:var(--i1)}}
+.btn.primary:disabled{background:var(--f3);color:var(--i3)}
+.btn.ghost{color:var(--i2)}
+.btn .lbl{display:inline-flex;align-items:center;gap:8px}
+.btn .lbl.swap{animation:swap 220ms var(--out)}
+@keyframes swap{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.btn .bar{position:absolute;left:0;top:0;bottom:0;width:100%;background:rgba(0,14,22,.16);transform-origin:left;transform:scaleX(0)}
+.btn.run .bar{animation:fill var(--d,2200ms) var(--inout) forwards}
+@keyframes fill{to{transform:scaleX(1)}}
+.reveal{opacity:0;transform:translateY(6px);pointer-events:none;transition:opacity 200ms var(--out),transform 200ms var(--out)}
+.reveal.show{opacity:1;transform:none;pointer-events:auto}
+.spacer{flex:1}
+.actions.idle{display:none}
+.link{color:var(--i3);font-size:12px;height:28px;padding:0 6px;border-radius:8px;flex:none;white-space:nowrap;transition:color 140ms,background 140ms}
+@media (hover:hover){.link:hover{color:var(--i1);background:var(--f2)}}
+
+/* ───────── perform (teleprompter) ───────── */
+.prompter{flex:1;display:flex;flex-direction:column;justify-content:center;min-height:240px}
+.phead{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.plabel{font-size:12px;color:var(--i3)}
+.recdot{width:7px;height:7px;border-radius:50%;background:var(--i4);flex:none;transition:background 200ms}
+.recdot.live{background:var(--burn);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.ptext{font:400 clamp(20px,7cqi,28px)/1.5 var(--font);letter-spacing:-.02em;max-height:280px;overflow:hidden;position:relative;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 18%,#000 82%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 18%,#000 82%,transparent 100%);padding:24px 0}
+.ptext.short{-webkit-mask-image:none;mask-image:none;padding:0}
+.ptext .ctx{color:var(--i4)}
+.ptext .w{color:rgba(237,237,239,.34);border-radius:5px;transition:color 160ms,background 160ms}
+.ptext .w.done{color:var(--i1)}
+.ptext .w.now{color:var(--moon);background:var(--off);box-shadow:0 0 0 3px var(--off)}
+.ptext .ctx{color:rgba(237,237,239,.16)!important}
+.ptext.long{font-size:17px;line-height:1.65}
+.pinner{transition:transform 320ms var(--out)}
+.count{position:absolute;inset:0;display:grid;place-items:center;font-size:64px;font-weight:600;color:var(--i1);pointer-events:none;opacity:0}
+.count.go{animation:countin 480ms var(--out)}
+@keyframes countin{0%{opacity:0;transform:scale(.7)}25%{opacity:1;transform:none}100%{opacity:0;transform:scale(1.1)}}
+.pfoot{display:flex;align-items:center;gap:12px;padding-top:16px}
+#stop .sq{width:9px;height:9px;border-radius:2px;background:var(--moon);display:inline-block}
+#stop:disabled .sq{background:var(--i4)}
+.stop i{width:14px;height:14px;border-radius:3px;background:var(--rec)}
+.stop.live::after{content:"";position:absolute;inset:0;border-radius:50%;animation:recring 1.4s ease-out infinite}
+@keyframes recring{0%{box-shadow:0 0 0 0 rgba(229,103,78,.35)}100%{box-shadow:0 0 0 12px rgba(229,103,78,0)}}
+.stop:active{transform:scale(.94)}
+.inmeter{display:block;height:39px;flex:1;min-width:0}
+.ptime{color:var(--i2)}
+
+/* ───────── review ───────── */
+.rtop{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.backb{display:inline-flex;align-items:center;gap:4px;color:var(--i3);height:30px;padding:0 8px 0 4px;margin-left:-4px;border-radius:8px;transition:color 140ms,background 140ms}
+@media (hover:hover){.backb:hover{color:var(--i1);background:var(--f2)}}
+.player{display:flex;align-items:center;gap:10px;min-width:0}
+.player .pbtn{width:34px;height:34px}
+.srcs{display:flex;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;flex:1}
+.srcs button{height:28px;padding:0 10px;border-radius:999px;color:var(--i3);font-size:13px;font-weight:500;white-space:nowrap;transition:background 160ms,color 160ms}
+@media (hover:hover){.srcs button:hover{color:var(--i1)}}
+.srcs button.cur{background:var(--f3);color:var(--i1)}
+.player .meter{margin-left:auto}
+.player .time{color:var(--i3);font-size:12px;min-width:30px;text-align:right}
+.rcap{color:var(--i3);font-size:12px;margin:8px 0 0 44px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity 160ms}
+.rline{cursor:pointer;margin:12px -10px 0 0;padding-right:10px;flex:0 1 auto;min-height:56px;max-height:min(320px,46vh);overflow-y:auto}
+.bd2{color:var(--i1)}
+.rline .bd2 span:hover{color:var(--i1)}
+.verify{display:flex;align-items:center;gap:6px;color:var(--i3);font-size:11px;margin-top:14px}
+
+/* ───────── done ───────── */
+.check{width:52px;height:52px}
+.check .ring{stroke:var(--i1);stroke-dasharray:160;stroke-dashoffset:160}
+.check path{stroke:var(--i1);stroke-dasharray:40;stroke-dashoffset:40}
+.view.on .check .ring{animation:draw 520ms var(--out) 100ms forwards}
+.view.on .check path{animation:draw 320ms var(--out) 480ms forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.stag>*{opacity:0;transform:translateY(6px)}
+.view.on .stag>*{animation:rise 320ms var(--out) forwards}
+.view.on .stag>*:nth-child(2){animation-delay:420ms}
+.view.on .stag>*:nth-child(3){animation-delay:480ms}
+.view.on .stag>*:nth-child(4){animation-delay:540ms}
+@keyframes rise{to{opacity:1;transform:none}}
+
+.confirm{position:absolute;left:12px;right:12px;top:8px;z-index:7;background:var(--s3);border-radius:12px;box-shadow:var(--sh2);padding:10px 10px 10px 14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:opacity 160ms ease-out,transform 200ms var(--out)}
+.confirm.on{opacity:1;transform:none;pointer-events:auto}
+.confirm .q{flex:1;min-width:140px}
+.confirm .btn{height:30px;padding:0 10px}
+
+@container plug (max-width:370px){
+  .clipname{display:none}
+  .rhead{flex-wrap:wrap}
+  .rlabel{width:100%}
+  .actions .btn.primary{flex:1}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Prototype version switch (not part of the product): same place and look in every version */
+.proto-ver{position:fixed;top:8px;right:16px;z-index:1000;display:inline-flex;gap:2px;margin:0;padding:2px;border:0;border-radius:6px;background:rgba(255,255,255,.06);font:500 12px/18px system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:0}
+.proto-ver a{padding:3px 10px;border-radius:4px;color:rgba(230,231,232,.55);text-decoration:none;transition:background 140ms,color 140ms}
+.proto-ver a:hover{color:#e6e7e8}
+.proto-ver a[aria-current="page"]{background:rgba(255,255,255,.14);color:#e6e7e8}
+</style>
+</head>
+<body>
+
+<section class="daw" aria-label="Editor timeline (mock)">
+  <div class="transport"><div class="dots"><i></i><i></i><i></i></div><span class="tc num">01:14:27:19</span><span>Reel 3 · Film mix</span><nav class="proto-ver" aria-label="Prototype version"><a href="../flow-1-read-v2/index.html" data-port="5174">V1</a><a href="../flow-1-read-v3/index.html" data-port="5176">V2</a><a href="../plugin-v3/index.html" data-port="5178" aria-current="page">V3</a></nav></div>
+  <div class="ruler"><span></span><div class="ticks num"><span>14:20</span><span>14:24</span><span>14:28</span><span>14:32</span><span>14:36</span></div></div>
+  <div class="tracks">
+    <div class="track"><div class="name">DX 1<small>Anna</small></div><div class="lane">
+      <button class="clip dx" data-c="c1" style="left:6%;width:22%">Sc 12 · L4</button>
+      <button class="clip dx" data-c="c3" style="left:58%;width:26%">Sc 15 · L1</button></div></div>
+    <div class="track"><div class="name">DX 2<small>Tom</small></div><div class="lane">
+      <button class="clip dx" data-c="c2" style="left:31%;width:20%">Sc 14 · L2</button>
+      <button class="clip dx" data-c="c5" style="left:56%;width:40%">Sc 16 · Monologue (0:55)</button></div></div>
+    <div class="track"><div class="name">DX 3<small>Walla</small></div><div class="lane">
+      <button class="clip dx" data-c="c4" style="left:4%;width:88%">Sc 15 · Crowd walla</button></div></div>
+    <div class="track"><div class="name">FX<small>Foley</small></div><div class="lane"><span class="clip dim" style="left:12%;width:14%"></span><span class="clip dim" style="left:44%;width:18%"></span><span class="clip dim" style="left:76%;width:12%"></span></div></div>
+    <div class="track"><div class="name">AMB<small>Room tone</small></div><div class="lane"><span class="clip dim" style="left:0;width:100%"></span></div></div>
+    <div class="track"><div class="name">MX<small>Score</small></div><div class="lane"><span class="clip dim" style="left:20%;width:80%"></span></div></div>
+    <div class="playhead"></div>
+  </div>
+  <div class="demo"><b>Prototype states</b>
+    <button data-demo="offline" aria-pressed="false">Offline</button>
+    <button data-demo="fail" aria-pressed="false">Fail next generation</button>
+    <button data-demo="mic" aria-pressed="false">Mic access denied</button>
+    <button data-demo="signedout" aria-pressed="false">Signed out</button>
+    <span style="margin-left:auto">Drag the plugin by its top bar · widen it from its corner</span>
+  </div>
+</section>
+
+<aside class="plugin" id="plugin">
+  <div class="grip" id="grip" title="Resize width"><svg width="8" height="8" viewBox="0 0 8 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M7 1 1 7M7 4.5 4.5 7"/></svg></div>
+  <header class="head" id="head">
+    <div class="brand" aria-label="SONA"><img src="brand/SONA_Bildmarke_Light.svg" alt="" height="13"><img src="brand/SONA_Wortmarke_Light.svg" alt="SONA" height="11"></div>
+    <span class="clipname" id="clipname"></span>
+    <nav class="tools links"><button class="hlink" id="helpBtn" aria-label="How this works" aria-expanded="false">help</button><button class="hlink" id="setBtn" aria-label="Settings" aria-expanded="false">settings</button></nav>
+  </header>
+
+  <div class="pop helpbox" id="help" role="dialog" aria-label="How this works"><div id="helpText"></div></div>
+  <div class="pop setbox" id="settings" role="dialog" aria-label="Settings">
+    <div class="sec">Microphone</div>
+    <button class="item" role="menuitemradio" data-mic="builtin" aria-checked="true">Built-in microphone<span class="tick">✓</span></button>
+    <button class="item" role="menuitemradio" data-mic="interface" aria-checked="false"><span>Audio interface<small>Input 1</small></span><span class="tick">✓</span></button>
+    <div class="sec">Performing</div>
+    <button class="item" role="menuitemcheckbox" id="optCount" aria-checked="true"><span>Count in 3, 2, 1<small>Before you perform a line</small></span><span class="tick">✓</span></button>
+    <div class="sec">Account</div>
+    <div class="acct"><span class="av">E</span><span>Studio account<small id="acctState">Signed in</small></span></div>
+    <button class="item" id="signOut">Sign out</button>
+  </div>
+  <div class="pop" id="voiceMenu" role="menu"></div>
+  <div class="pop" id="fileMenu" role="menu"></div>
+  <div class="banner" id="offline"><span class="dot" style="background:var(--warn)"></span>You're offline. Your changes are kept.</div>
+  <div class="confirm" id="confirm" role="alertdialog"><span class="q" id="confirmQ">Discard your changes?</span><button class="btn ghost" id="keep">Keep editing</button><button class="btn ghost" id="discard" style="color:var(--i1)">Discard</button></div>
+
+  <div class="body">
+    <section class="view on" data-v="empty"><div class="center">
+      <div class="h">Select a line on your timeline</div>
+      <p class="muted">SONA re-voices a line: perform it your way, or have someone else say it, in the actor's place.</p>
+      <div class="nudge"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>Pick one dialogue clip</div>
+    </div></section>
+
+    <section class="view" data-v="signin"><div class="center">
+      <div class="h">Sign in to use SONA</div>
+      <p class="muted">Your studio account unlocks voice editing here. Your timeline stays as it is.</p>
+      <div><button class="btn primary" id="signin"><span class="lbl">Sign in</span></button></div>
+    </div></section>
+
+    <section class="view" data-v="long"><div class="center">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--warn);font-weight:500"><span class="dot" style="background:var(--warn)"></span>This clip is 1:12 long</div>
+      <div class="h">SONA works on one line at a time</div>
+      <p class="muted">Trim it to under 60 seconds in your timeline, then select it again.</p>
+    </div></section>
+
+    <!-- edit: the line + who says it + how it's said -->
+    <section class="view" data-v="edit" id="editView">
+      <div class="listen">
+        <button class="chip" id="voiceChip" aria-haspopup="menu" title="Who says it"></button>
+        <span class="spacer"></span>
+        <canvas class="meter" id="meterO"></canvas>
+        <span class="time num" id="timeO">0:06</span>
+        <button class="pbtn" id="playO" aria-label="Play the original" title="Play the original"></button>
+      </div>
+      <div class="linebox" id="linebox">
+        <div class="lw"><div class="bd" id="bd" aria-hidden="true"></div><textarea class="ta" id="ta" spellcheck="false" aria-label="The line. Edit the words, or select part of it to perform."></textarea></div>
+      </div>
+      <div class="was" id="was" hidden></div>
+
+      <div class="recipe">
+        <div class="rrow" id="howRow">
+          <div class="rhead">
+            <span class="rlabel">How it's said</span>
+            <div class="rval">
+              <span class="asis" id="asis">As recorded</span>
+              <span class="spacer"></span>
+              <button class="act" id="perform"><svg class="mic" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.75" y="1.25" width="4.5" height="7" rx="2.25" fill="currentColor" stroke="none"/><path d="M2.75 6.75a4.25 4.25 0 0 0 8.5 0M7 11v1.75"/></svg><span id="performLbl">Perform</span></button>
+              <button class="ibtn" id="importBtn" title="Import a take" aria-label="Import a take"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 2v7M4 6l3 3 3-3M2.5 11.5h9"/></svg></button>
+            </div>
+          </div>
+          <div class="perfs" id="perfs" hidden></div>
+          <p class="rnote warn" id="micErr" hidden>Sona can't use your microphone. Allow access in your system settings, or import a take instead.</p>
+        </div>
+      </div>
+
+      <p class="note" id="note" hidden></p>
+      <div class="err" id="err" hidden><span class="dot"></span><p>Couldn't generate this take.<small>The voice service didn't answer. Your changes are kept.</small></p><button class="btn ghost" id="retry" style="height:30px;color:var(--i1)">Retry</button></div>
+      <div class="actions">
+        <button class="btn primary reveal" id="gen"><span class="lbl">Generate</span><span class="bar"></span></button>
+        <button class="btn ghost reveal" id="reset"><span class="lbl">Start over</span></button>
+        <span class="spacer"></span>
+        <button class="link reveal" id="seeTakes"></button>
+      </div>
+    </section>
+
+    <!-- perform: only the part you're re-performing -->
+    <section class="view" data-v="perform" id="perfView">
+      <div class="prompter">
+        <div class="phead"><span class="recdot" id="recdot"></span><span class="plabel" id="pLabel">Perform the line</span><span class="spacer"></span>
+          <button class="ibtn" id="pcancel" title="Cancel, keep nothing" aria-label="Cancel recording"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg></button></div>
+        <div class="ptext" id="ptext"><div class="pinner" id="pinner"></div><div class="count" id="count"></div></div>
+      </div>
+      <div class="pfoot">
+        <canvas class="inmeter" id="inmeter"></canvas>
+        <span class="ptime num" id="ptime">0:00</span>
+        <button class="btn primary" id="stop" aria-label="Finish recording"><span class="lbl"><i class="sq"></i>Done</span></button>
+      </div>
+    </section>
+
+    <!-- review -->
+    <section class="view" data-v="review">
+      <div class="rtop">
+        <button class="backb" id="backB"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3 5 8l5 5"/></svg>Edit</button>
+      </div>
+      <div class="player"><button class="pbtn" id="rPlay" aria-label="Play"></button><div class="srcs" id="srcs" role="tablist" aria-label="What to listen to"></div><canvas class="meter" id="rMeter"></canvas><span class="time num" id="rTime">0:06</span></div>
+      <div class="rcap" id="rcap"></div>
+      <div class="rline" id="rline"><div class="bd2" id="bd2"></div></div>
+      <div class="verify"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M7 1.5 2.5 3.5v3.2c0 2.6 1.9 4.6 4.5 5.8 2.6-1.2 4.5-3.2 4.5-5.8V3.5z"/></svg>Marked as AI-generated · SONA Verify</div>
+      <div class="actions">
+        <button class="btn ghost" id="again"><span class="lbl">Another take</span></button>
+        <span class="spacer"></span>
+        <button class="btn primary" id="send"><span class="lbl">Send to track</span></button>
+      </div>
+    </section>
+
+    <section class="view" data-v="done"><div class="center stag">
+      <svg class="check" viewBox="0 0 56 56" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle class="ring" cx="28" cy="28" r="25" transform="rotate(-90 28 28)"/><path d="M18 28.5l6.5 6.5L38 21.5"/></svg>
+      <div class="h" id="doneH">Sent to track</div>
+      <p class="muted">The original stays on an alternate playlist, so nothing is lost.</p>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><button class="btn ghost" id="undo" style="margin-left:-14px"><span class="lbl">Undo</span></button><span class="faint">or pick the next line</span></div>
+    </div></section>
+  </div>
+</aside>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const plugin = $('#plugin'), root = document.documentElement.style;
+
+const CLIPS = {
+  c1:{name:'Scene 12 · Line 4', track:'DX 1', actor:'Anna', dur:6, text:'Look there, about one hundred meters ahead.'},
+  c2:{name:'Scene 14 · Line 2', track:'DX 2', actor:'Tom', dur:5, text:'Nice gray coat. Where did you get it?'},
+  c3:{name:'Scene 15 · Line 1', track:'DX 1', actor:'Anna', dur:7, text:'We should move now, before it gets dark.'},
+  c4:{name:'Scene 15 · Crowd walla', track:'DX 3', actor:'Crowd', dur:72, long:true},
+  c5:{name:'Scene 16 · Monologue', track:'DX 2', actor:'Tom', dur:55, text:'I kept telling myself it was nothing. A light in the window, a car that stayed too long at the corner, a voice on the phone that hung up when I answered. You learn to ignore those things in a city like this. But that night the light was on in my own apartment, and I knew I had switched it off before I left. I stood in the hallway for a long time with the key in my hand, listening. Nothing moved. Then the radio came on, very quietly, the same song my brother used to play every morning before work, and I understood that whoever was inside wanted me to know exactly who they were.'}
+};
+const LIB = [{id:'mara', name:'Mara', sub:'warm · mid'}, {id:'jonas', name:'Jonas', sub:'deep · calm'}, {id:'lea', name:'Lea', sub:'bright · young'}];
+const FILES = [{name:'desk_mic_take_02.wav', dur:'0:06'}, {name:'ADR_session_14_L4.wav', dur:'0:07'}];
+const REFS = [{name:'casting_mara_ref.wav', dur:'0:12'}, {name:'voice_sample_kai.wav', dur:'0:20'}];
+
+// ── helpers ──
+const rng = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const tokens = s => s.trim().split(/\s+/).filter(Boolean);
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const fmt = s => `0:${String(Math.max(0, Math.floor(s))).padStart(2, '0')}`;
+const offsets = s => { const o = []; s.replace(/\S+/g, (m, i) => (o.push([i, i + m.length]), m)); return o; };
+function diff(a, b){
+  const n = a.length, m = b.length, dp = Array.from({length:n + 1}, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i+1][j+1] + 1 : Math.max(dp[i+1][j], dp[i][j+1]);
+  const ops = []; let i = 0, j = 0;
+  while (i < n && j < m){ if (a[i] === b[j]){ ops.push({t:'same', a:i, b:j}); i++; j++; } else if (dp[i+1][j] >= dp[i][j+1]) ops.push({t:'del', a:i++}); else ops.push({t:'ins', b:j++}); }
+  while (i < n) ops.push({t:'del', a:i++}); while (j < m) ops.push({t:'ins', b:j++});
+  return ops;
+}
+function label(btn, html){ const l = btn.querySelector('.lbl'); if (!l || l.innerHTML === html) return; l.innerHTML = html; l.classList.remove('swap'); void l.offsetWidth; l.classList.add('swap'); }
+const ICON = {
+  play:'<svg width="11" height="11" viewBox="0 0 14 14"><path d="M4 2.5v9l7.5-4.5z" fill="currentColor"/></svg>',
+  pause:'<svg width="11" height="11" viewBox="0 0 14 14"><path d="M4 2.5h2v9H4zM8 2.5h2v9H8z" fill="currentColor"/></svg>',
+  redo:'<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7a4.5 4.5 0 1 0 1.3-3.2M2.5 2v2.5H5"/></svg>',
+  x:'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3l6 6M9 3l-6 6"/></svg>',
+  chev:'<svg class="chev" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 4.5 3 3 3-3"/></svg>',
+  file:'<svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3.5 1.5h5l3 3v8h-8z"/></svg>',
+};
+$$('.pbtn').forEach(p => p.innerHTML = ICON.play);
+
+// timeline minis
+$$('.clip').forEach((c, ci) => { const m = document.createElement('span'); m.className = 'mini'; const r = rng(ci + 3); let h = ''; for (let i = 0; i < 320; i++) h += `<i style="--h:${(.15 + r() * .85).toFixed(2)}"></i>`; m.innerHTML = h; c.appendChild(m); });
+
+// ── state ──
+const S = {clip:null, base:'', text:'', voice:{kind:'orig'}, perfs:[], sel:null, phase:'empty', takes:[], cur:-1, play:null, pending:null,
+           offline:false, fail:false, mic:false, signedout:false, back:'empty', pid:0, countIn:true};
+const C = () => CLIPS[S.clip];
+const textChanged = () => S.text.trim() !== S.base.trim();
+const voiceChanged = () => S.voice.kind !== 'orig';
+const stalePerf = () => S.perfs.some(p => p.stale);
+const changed = () => textChanged() || voiceChanged() || S.perfs.length > 0;
+const key = () => JSON.stringify([S.text, S.voice, S.perfs.map(p => [p.s, p.e, p.id])]);
+const voiceName = v => v.kind === 'orig' ? C().actor : v.kind === 'lib' ? v.name : v.name;
+
+// ── phases ──
+function phase(p){
+  S.phase = p;
+  $$('.view').forEach(v => v.classList.toggle('on', v.dataset.v === (p === 'gen' ? 'edit' : p)));
+  $('#editView').classList.toggle('gen', p === 'gen');
+  closePops(); update();
+}
+
+// ── clips ──
+function requestClip(id){
+  if (S.signedout){ S.queued = id; return phase('signin'); }
+  if (S.phase === 'perform') return;
+  if (S.clip === id && S.phase !== 'done') return;
+  if ((['edit','gen'].includes(S.phase) && changed()) || S.phase === 'review'){
+    S.pending = id; $('#confirmQ').textContent = `Discard changes to ${C().name}?`; $('#confirm').classList.add('on'); return;
+  }
+  loadClip(id);
+}
+function loadClip(id){
+  clearTimeout(S.timer); stopPlay();
+  $('#confirm').classList.remove('on'); $('#err').hidden = true; $('#micErr').hidden = true;
+  const c = CLIPS[id];
+  Object.assign(S, {clip:id, voice:{kind:'orig'}, perfs:[], sel:null, takes:[], cur:-1});
+  $$('.clip.dx').forEach(el => el.classList.toggle('sel', el.dataset.c === id));
+  const cn = $('#clipname'); cn.classList.remove('on');
+  setTimeout(() => { cn.textContent = `${c.track} · ${c.name}`; cn.classList.add('on'); }, 90);
+  if (c.long) return phase('long');
+  S.base = S.text = c.text; ta.value = S.text;
+  $('#timeO').textContent = fmt(c.dur);
+  $('#linebox').classList.toggle('long', S.text.length > 160);
+  $('#rline').classList.toggle('long', S.text.length > 160);
+  phase('edit'); renderAll();
+}
+
+// ── the line: one always-live text field; marks drawn underneath ──
+const ta = $('#ta');
+function marks(text, opts = {}){
+  // character classes → spans. ins = changed words, perf = performed part, sung = karaoke progress
+  const cls = Array.from({length:text.length}, () => new Set());
+  if (opts.ins !== false){
+    const a = tokens(S.base), off = offsets(text), b = off.map(([s, e]) => text.slice(s, e));
+    diff(a, b).forEach(o => { if (o.t === 'ins'){ const [s, e] = off[o.b]; for (let i = s; i < e; i++) cls[i].add('ins'); } });
+  }
+  (opts.perfs || []).filter(p => !p.stale).forEach(p => { for (let i = p.s; i < p.e && i < text.length; i++){ cls[i].add('perf'); cls[i].add('pc' + p.ci); if (p.id === S.hot) cls[i].add('hot'); if (p.stale) cls[i].add('stale'); } });
+  if (opts.sung != null) for (let i = opts.sung[0]; i < opts.sung[1] && i < text.length; i++) cls[i].add('sung');
+  // removed words, shown struck through where they were (only at rest; while typing the field must match the text exactly)
+  const dels = {};
+  if (opts.dels){
+    const a = tokens(S.base), off = offsets(text), ops = diff(a, off.map(([s, e]) => text.slice(s, e)));
+    for (let x = 0; x < ops.length; x++){
+      if (ops[x].t !== 'del') continue;
+      const words = []; while (x < ops.length && ops[x].t === 'del') words.push(a[ops[x++].a]);
+      const next = ops.slice(x).find(o => o.t !== 'del'); const at = next ? off[next.b][0] : text.length;
+      dels[at] = (dels[at] ? dels[at] + ' ' : '') + words.join(' ');
+      x--;
+    }
+  }
+  let h = '', cur = null, buf = '', start = 0;
+  const flush = () => { if (buf) h += `<span class="${cur || ''}" data-o="${start}">${esc(buf)}</span>`; buf = ''; };
+  for (let i = 0; i <= text.length; i++){
+    if (dels[i] != null){ flush(); h += `<s class="del" data-o="${i}">${esc(dels[i])}</s>${i < text.length ? ' ' : ''}`; cur = null; }
+    if (i === text.length) break;
+    const k = [...cls[i]].sort().join(' ');
+    if (k !== cur || !buf){ flush(); cur = k; start = i; }
+    buf += text[i];
+  }
+  flush();
+  return h + '\n';
+}
+function paintLine(sung){
+  const rest = document.activeElement !== ta && !S.dragging;
+  $('#bd').innerHTML = marks(S.text, {perfs:S.perfs, sung, dels:rest});
+  $('#bd').classList.toggle('quiet', sung != null);
+  $('#linebox').classList.toggle('rest', rest);
+  ta.style.height = $('#bd').offsetHeight + 'px';
+}
+function paintWas(){ $('#was').hidden = true; }
+
+// at rest the struck words shift the layout, so the field can't take the click directly:
+// map the pointer to a text offset through the drawn line, then select by dragging
+function offsetAt(x, y){
+  const bd = $('#bd'); bd.style.pointerEvents = 'auto'; ta.style.pointerEvents = 'none';
+  let node, o;
+  if (document.caretPositionFromPoint){ const p = document.caretPositionFromPoint(x, y); node = p?.offsetNode; o = p?.offset; }
+  else { const r = document.caretRangeFromPoint(x, y); node = r?.startContainer; o = r?.startOffset; }
+  bd.style.pointerEvents = ''; ta.style.pointerEvents = '';
+  const el = node && (node.nodeType === 3 ? node.parentElement : node);
+  if (!el || !bd.contains(el) || el.dataset.o == null) return null;
+  return el.classList.contains('del') ? +el.dataset.o : Math.min(S.text.length, +el.dataset.o + (o || 0));
+}
+$('#linebox').addEventListener('pointerdown', ev => {
+  if (S.phase !== 'edit' || ev.button !== 0) return;
+  const restNow = document.activeElement !== ta;
+  const o0 = offsetAt(ev.clientX, ev.clientY);
+  if (!restNow) return;                                   // the live field handles its own clicks and drags
+  ev.preventDefault();
+  const anchor = o0 ?? S.text.length;
+  S.dragging = true; paintLine();                          // switch to the exact layout first
+  ta.focus({preventScroll:true}); ta.setSelectionRange(anchor, anchor);
+  const mv = e => { const o = offsetAt(e.clientX, e.clientY); if (o == null) return; ta.setSelectionRange(Math.min(anchor, o), Math.max(anchor, o), o < anchor ? 'backward' : 'forward'); };
+  const up = () => { S.dragging = false; removeEventListener('pointermove', mv); removeEventListener('pointerup', up); readSel(); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+ta.addEventListener('focus', () => paintLine());
+function setHot(id){
+  if (S.hot === id) return; S.hot = id;
+  $$('#perfs .perf-row').forEach(r => r.classList.toggle('hot', +r.dataset.id === id));
+  if (!S.play && S.phase === 'edit') paintLine();
+}
+let hoverRaf = 0;
+$('#linebox').addEventListener('mousemove', ev => {
+  if (S.dragging || hoverRaf) return;
+  hoverRaf = requestAnimationFrame(() => { hoverRaf = 0;
+    const o = offsetAt(ev.clientX, ev.clientY), p = o == null ? null : S.perfs.find(p => !p.stale && o >= p.s && o < p.e);
+    setHot(p ? p.id : null);
+  });
+});
+$('#linebox').addEventListener('mouseleave', () => setHot(null));
+$('#perfs').addEventListener('mouseover', ev => { const r = ev.target.closest('.perf-row'); setHot(r ? +r.dataset.id : null); });
+$('#perfs').addEventListener('mouseleave', () => setHot(null));
+// double-click selects a word, whichever layer got the first click
+$('#linebox').addEventListener('dblclick', ev => {
+  if (S.phase !== 'edit') return;
+  const o = offsetAt(ev.clientX, ev.clientY); if (o == null) return;
+  let a = o, b = o; while (a > 0 && /\S/.test(S.text[a - 1])) a--; while (b < S.text.length && /\S/.test(S.text[b])) b++;
+  ev.preventDefault(); ta.focus({preventScroll:true}); ta.setSelectionRange(a, b); readSel();
+});
+function renderAll(){ paintLine(); paintWas(); renderWho(); renderHow(); update(); }
+
+ta.addEventListener('input', () => {
+  const old = S.text;
+  S.text = ta.value.replace(/\n/g, ' '); if (ta.value !== S.text){ const p = ta.selectionStart; ta.value = S.text; ta.setSelectionRange(p, p); }
+  relocatePerfs(old);
+  $('#err').hidden = true; paintLine(); paintWas(); renderHow(); readSel(); update();
+});
+ta.addEventListener('keydown', ev => {
+  if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); generate(); }
+  else if (ev.key === 'Enter'){ ev.preventDefault(); ta.blur(); }
+  else if (ev.key === 'Escape'){ ev.preventDefault(); ta.setSelectionRange(ta.selectionEnd, ta.selectionEnd); ta.blur(); }
+});
+// performances follow the words they cover; if those words changed, they go stale
+function relocatePerfs(old){
+  S.perfs.forEach(p => {
+    if (S.text.slice(p.s, p.e) === p.t){ p.stale = false; return; }
+    const cands = []; let i = -1; while ((i = S.text.indexOf(p.t, i + 1)) !== -1) cands.push(i);
+    if (cands.length){ const best = cands.sort((x, y) => Math.abs(x - p.s) - Math.abs(y - p.s))[0]; p.s = best; p.e = best + p.t.length; p.stale = false; }
+    else p.stale = true;
+  });
+}
+// selection → "Perform selection" (snapped to whole words)
+function readSel(){
+  const v = ta.value; let a = ta.selectionStart, b = ta.selectionEnd;
+  if (document.activeElement === ta && b > a && v.slice(a, b).trim()){
+    while (a > 0 && /\S/.test(v[a - 1])) a--; while (b < v.length && /\S/.test(v[b])) b++;
+    while (/\s/.test(v[a])) a++; while (b > a && /\s/.test(v[b - 1])) b--;
+    S.sel = (a === 0 && b >= v.trimEnd().length) ? null : {s:a, e:b, t:v.slice(a, b)};
+  } else S.sel = null;
+  $('#performLbl').textContent = S.sel ? 'Perform selection' : 'Perform';
+  $('#asis').style.visibility = S.sel ? 'hidden' : '';
+}
+['select','keyup','mouseup'].forEach(e => ta.addEventListener(e, readSel));
+ta.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ta){ S.sel = null; $('#performLbl').textContent = 'Perform'; $('#asis').style.visibility = ''; if (!S.dragging) paintLine(); } }, 0));
+// buttons that act on the selection must not steal it
+['#perform','#importBtn'].forEach(id => $(id).addEventListener('pointerdown', ev => ev.preventDefault()));
+
+// ── Who says it ──
+function renderWho(){
+  const v = S.voice, chip = $('#voiceChip');
+  const av = v.kind === 'ref' ? `<span class="av file">${ICON.file}</span>` : `<span class="av${v.kind === 'lib' ? ' lib' : ''}">${voiceName(v)[0]}</span>`;
+  const sub = v.kind === 'orig' ? 'original voice' : v.kind === 'lib' ? 'library voice' : 'reference clip';
+  chip.innerHTML = `${av}<span class="t">${esc(voiceName(v))} <span class="sub">· ${sub}</span></span>${ICON.chev}`;
+  chip.classList.toggle('changed', voiceChanged());
+}
+function voiceMenu(){
+  const v = S.voice, m = $('#voiceMenu');
+  const item = (k, id, name, sub, av) => `<button class="item" role="menuitemradio" data-k="${k}" data-id="${id}" aria-checked="${(k === v.kind && (k === 'orig' || v.id === id))}">${av}<span><span>${esc(name)}</span><small>${esc(sub)}</small></span><span class="tick">✓</span></button>`;
+  m.innerHTML = '<div class="sec">Keep</div>' + item('orig', '', C().actor, 'the original actor, as recorded', `<span class="av">${C().actor[0]}</span>`)
+    + '<div class="sec">Voice library</div>' + LIB.map(l => item('lib', l.id, l.name, l.sub, `<span class="av lib">${l.name[0]}</span>`)).join('')
+    + '<div class="sec">From a reference clip</div>' + REFS.map(r => item('ref', r.name, r.name, `${r.dur} · uses this person's voice`, `<span class="av file">${ICON.file}</span>`)).join('');
+}
+$('#voiceChip').addEventListener('click', ev => { ev.stopPropagation(); voiceMenu(); openPop('#voiceMenu', ev.currentTarget); ev.currentTarget.setAttribute('aria-expanded', $('#voiceMenu').classList.contains('on')); });
+$('#voiceMenu').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-k]'); if (!b) return;
+  const k = b.dataset.k;
+  S.voice = k === 'orig' ? {kind:'orig'} : k === 'lib' ? {kind:'lib', id:b.dataset.id, name:LIB.find(l => l.id === b.dataset.id).name} : {kind:'ref', id:b.dataset.id, name:b.dataset.id};
+  closePops(); renderWho(); update();
+});
+
+// ── How it's said: performances (whole line or several parts) ──
+function renderHow(){
+  const list = $('#perfs');
+  $('#asis').hidden = S.perfs.length > 0;
+  list.hidden = !S.perfs.length;
+  list.innerHTML = S.perfs.map((p, i) => {
+    const whole = p.whole;
+    const title = whole ? 'Whole line' : `“${p.t}”`;
+    const sub = p.stale ? 'Words changed. Perform it again.' : `${p.src === 'file' ? p.file : 'your mic'} · ${fmt(p.dur)}`;
+    return `<div class="perf-row${p.stale ? ' stale' : ''}${p.id === S.hot ? ' hot' : ''}" data-i="${i}" data-id="${p.id}">
+      <button class="pbtn" data-play="${i}" aria-label="Play ${esc(title)}">${S.play?.key === 'p' + p.id ? ICON.pause : ICON.play}</button>
+      <div class="what"><b>${esc(title)}</b><span>${esc(sub)}</span></div>
+      <button class="ibtn" data-redo="${i}" title="Perform again" aria-label="Perform again">${ICON.redo}</button>
+      <button class="ibtn" data-del="${i}" title="Remove" aria-label="Remove">${ICON.x}</button>
+    </div>`;
+  }).join('');
+}
+$('#perfs').addEventListener('pointerdown', ev => { if (ev.target.closest('button')) ev.preventDefault(); });
+$('#perfs').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const i = +(b.dataset.play ?? b.dataset.redo ?? b.dataset.del), p = S.perfs[i];
+  if (b.dataset.play != null) return toggle('p' + p.id, p);
+  if (b.dataset.redo != null) return startPerform(p.whole ? null : {s:p.s, e:p.e, t:p.t});
+  if (b.dataset.del != null){ stopPlay(); S.perfs.splice(i, 1); renderHow(); paintLine(); update(); }
+});
+function addPerf(range, src, file){
+  const whole = !range;
+  const r = range || {s:0, e:S.text.length, t:S.text};
+  // a new performance replaces whatever it overlaps; a whole-line one replaces all parts
+  S.perfs = S.perfs.filter(p => !(whole || p.whole || (p.s < r.e && r.s < p.e)));
+  const dur = Math.max(1, C().dur * (r.e - r.s) / S.text.length);
+  let ci = 0; while (S.perfs.some(p => p.ci === ci)) ci++;
+  S.perfs.push({id:++S.pid, ci:ci % 6, s:r.s, e:r.e, t:r.t, whole, src, file, dur, stale:false});
+  S.perfs.sort((a, b) => a.s - b.s);
+}
+
+// import a take (file) for the selection or whole line
+$('#importBtn').addEventListener('click', ev => {
+  ev.stopPropagation();
+  const sel = S.sel; S.importFor = sel;
+  $('#fileMenu').innerHTML = `<div class="sec">${sel ? 'Use a file for the selected part' : 'Use a file for the whole line'}</div>` +
+    FILES.map(f => `<button class="item" data-f="${f.name}"><span class="av file">${ICON.file}</span><span><span>${f.name}</span><small>${f.dur}</small></span></button>`).join('') +
+    `<button class="item" data-f="browse"><span class="av file">+</span><span>Browse…</span></button>`;
+  openPop('#fileMenu', ev.currentTarget);
+});
+$('#fileMenu').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-f]'); if (!b) return;
+  const f = b.dataset.f === 'browse' ? 'my_take.wav' : b.dataset.f;
+  addPerf(S.importFor, 'file', f); closePops(); ta.blur(); renderHow(); paintLine(); update();
+});
+
+// ── perform: teleprompter with karaoke, count-in, live input level ──
+$('#perform').addEventListener('click', () => startPerform(S.sel));
+function startPerform(range){
+  if (S.phase !== 'edit') return;
+  if (S.mic){ $('#micErr').hidden = false; return; }
+  $('#micErr').hidden = true;
+  stopPlay();
+  const r = range || {s:0, e:S.text.length, t:S.text}, whole = !range;
+  S.recRange = range;
+  const dur = Math.max(1.2, C().dur * (r.e - r.s) / S.text.length);
+  // the part, with a few words of faded context on each side
+  const before = S.text.slice(0, r.s).trim().split(/\s+/).filter(Boolean).slice(-4).join(' ');
+  const after = S.text.slice(r.e).trim().split(/\s+/).filter(Boolean).slice(0, 4).join(' ');
+  const words = tokens(r.t);
+  $('#pLabel').textContent = 'Get ready…'; S.recLabel = whole ? 'Recording the whole line' : 'Recording the selected part';
+  const pt = $('#ptext'); pt.classList.toggle('short', whole && r.t.length < 160); pt.classList.toggle('long', r.t.length > 160);
+  $('#pinner').innerHTML = (before && !whole ? `<span class="ctx">…${esc(before)} </span>` : '') +
+    words.map((w, i) => `<span class="w" data-i="${i}">${esc(w)}</span>`).join(' ') +
+    (after && !whole ? `<span class="ctx"> ${esc(after)}…</span>` : '');
+  $('#pinner').style.transform = '';
+  S.wave = new DotWave($('#inmeter'), {pitch:10, half:3});
+  requestAnimationFrame(() => S.wave.draw(null, 0));
+  openMic();
+  $('#ptime').textContent = '0:00';
+  $('#recdot').classList.remove('live'); $('#stop').disabled = true;
+  phase('perform');
+  // count-in
+  let n = S.countIn ? 3 : 0; const c = $('#count');
+  S.rec = {t0:0, dur, words, r, whole, active:true};
+  const tick = () => {
+    if (!S.rec?.active) return;
+    if (n === 0){ c.textContent = ''; return record(); }
+    c.textContent = n--; c.classList.remove('go'); void c.offsetWidth; c.classList.add('go');
+    S.rec.to = setTimeout(tick, 520);
+  };
+  tick();
+}
+function record(){
+  const R = S.rec; R.t0 = performance.now(); $('#recdot').classList.add('live'); $('#stop').disabled = false; $('#pLabel').textContent = S.recLabel;
+  // karaoke: words light up at the original's pace (by length)
+  const lens = R.words.map(w => w.length + 1), tot = lens.reduce((a, b) => a + b, 0);
+  let acc = 0; R.marks = lens.map(l => (acc += l) / tot);
+  const W = S.wave, sim = new VoiceSim(S.pid + 9);
+  const loop = now => {
+    if (!R.active) return;
+    const el = (now - R.t0) / 1000, p = el / R.dur;
+    $('#ptime').textContent = fmt(el);
+    const wi = R.marks.findIndex(m => m > p);
+    $$('#pinner .w').forEach((w, i) => { w.classList.toggle('done', wi === -1 || i < wi); w.classList.toggle('now', i === wi); });
+    const now$ = $(`#pinner .w[data-i="${wi === -1 ? R.words.length - 1 : wi}"]`);
+    if (now$){ const pt = $('#ptext'), y = now$.offsetTop - pt.clientHeight * .4; if (y > 0) $('#pinner').style.transform = `translateY(${-y}px)`; }
+    // live input: the dots react to the mic (spectrum, mirrored from the centre); simulated if there's no mic
+    W.draw(MIC.ana ? micBands(W.n) : sim.bands(W.n, now, wi === -1 ? .05 : 1), 1);
+    if (el > R.dur + .8) return stopRec();
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+// ── dot waveform (brand dot system): identical round dots on a fixed grid of columns.
+// Each column grows symmetrically from the centre; levels ease (fast attack, slow release),
+// and the outermost dot fades in with the fractional part, so it moves smoothly without changing dot size.
+class DotWave{
+  constructor(cv, o){ this.cv = cv; this.pitch = o.pitch; this.half = o.half; this.lv = []; this.n = 0; }
+  fit(){
+    const dpr = devicePixelRatio || 1, w = this.cv.clientWidth, h = this.cv.clientHeight;
+    if (this.w !== w || this.h !== h || this.dpr !== dpr){
+      this.w = w; this.h = h; this.dpr = dpr; this.cv.width = Math.round(w * dpr); this.cv.height = Math.round(h * dpr);
+      this.n = Math.max(1, Math.floor((w + this.pitch - 3) / this.pitch)); this.lv = new Array(this.n).fill(0);
+    }
+  }
+  draw(target, live){
+    this.fit(); const c = this.cv.getContext('2d'), d = this.dpr, n = this.n;
+    c.clearRect(0, 0, this.cv.width, this.cv.height);
+    const dot = Math.round(3 * d), step = Math.round(this.pitch * d), vstep = Math.round(5 * d);  // whole device pixels: every dot rasterises identically
+    const x0 = Math.round((this.cv.width - ((n - 1) * step + dot)) / 2), cy = Math.round(this.cv.height / 2 - dot / 2);
+    const on = getComputedStyle(document.documentElement).getPropertyValue('--burn').trim() || '#ff4519', off = 'rgba(190,201,224,.26)';
+    for (let i = 0; i < n; i++){
+      const t = target ? Math.max(0, Math.min(this.half + .999, (target[i] || 0) * (this.half + 1))) : 0;
+      this.lv[i] += (t - this.lv[i]) * (t > this.lv[i] ? .42 : .1);
+      const L = this.lv[i], x = x0 + i * step, heat = live ? Math.min(1, L * 1.6) : 0;
+      for (let k = 0; k <= this.half; k++){
+        const a = k === 0 ? 1 : Math.max(0, Math.min(1, L - k + .35));
+        if (a <= 0) continue;
+        for (const sgn of k === 0 ? [0] : [-1, 1]){
+          const y = cy + sgn * k * vstep;
+          c.globalAlpha = a; c.fillStyle = off; c.beginPath(); c.arc(x + dot / 2, y + dot / 2, dot / 2, 0, 7); c.fill();
+          if (heat > 0){ c.globalAlpha = a * heat; c.fillStyle = on; c.beginPath(); c.arc(x + dot / 2, y + dot / 2, dot / 2, 0, 7); c.fill(); }
+        }
+      }
+    }
+    c.globalAlpha = 1;
+  }
+}
+// speech-like levels when there's no live input (and for playback): a talking envelope x slow per-column ripple
+class VoiceSim{
+  constructor(seed){ const r = rng(seed); this.ph = Array.from({length:64}, () => r() * 6.28); }
+  bands(n, now, gain = 1){
+    const t = now / 1000, syl = Math.pow(Math.abs(Math.sin(t * 5.1) * Math.sin(t * 1.7 + 1)), .7), env = (.25 + .75 * syl) * gain;
+    return Array.from({length:n}, (_, i) => {
+      const c = 1 - Math.abs(i - (n - 1) / 2) / ((n + 1) / 2);   // fuller in the middle, like a voice
+      const rip = .55 + .45 * Math.sin(t * (2.3 + (i % 5) * .37) + this.ph[i % 64]);
+      return env * (.35 + .65 * c) * rip;
+    });
+  }
+}
+// microphone: real levels while performing, if the browser allows it
+const MIC = {};
+async function openMic(){
+  if (MIC.ana || !navigator.mediaDevices?.getUserMedia || /nomic/.test(location.hash)) return;
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true}});
+    if (S.phase !== 'perform'){ st.getTracks().forEach(t => t.stop()); return; }
+    const ac = new (window.AudioContext || window.webkitAudioContext)(), src = ac.createMediaStreamSource(st), ana = ac.createAnalyser();
+    ana.fftSize = 1024; ana.smoothingTimeConstant = .6; src.connect(ana);
+    Object.assign(MIC, {st, ac, ana, buf:new Uint8Array(ana.frequencyBinCount)});
+  } catch (e) { /* no mic: the simulated level is used */ }
+}
+function closeMic(){ if (MIC.st){ MIC.st.getTracks().forEach(t => t.stop()); MIC.ac.close(); } for (const k in MIC) delete MIC[k]; }
+function micBands(n){
+  MIC.ana.getByteFrequencyData(MIC.buf);
+  const hz = MIC.ac.sampleRate / MIC.ana.fftSize, half = Math.ceil(n / 2), out = new Array(n).fill(0);
+  for (let j = 0; j < half; j++){               // centre = low voice band, edges = higher bands (log-spaced 90 Hz to 5 kHz)
+    const f0 = 90 * Math.pow(5000 / 90, j / half), f1 = 90 * Math.pow(5000 / 90, (j + 1) / half);
+    let m = 0; for (let b = Math.floor(f0 / hz); b <= Math.ceil(f1 / hz); b++) m = Math.max(m, MIC.buf[b] || 0);
+    const v = Math.max(0, (m / 255 - .32) / .5) * (1 - j / half * .35);
+    out[Math.floor((n - 1) / 2) - j] = v; out[Math.ceil((n - 1) / 2) + j] = v;
+  }
+  return out;
+}
+function stopRec(){
+  const R = S.rec; if (!R || !R.active) return;
+  R.active = false; clearTimeout(R.to); closeMic();
+  if (!R.t0 || (performance.now() - R.t0) < 500){ phase('edit'); return; }  // stopped during count-in: nothing recorded
+  addPerf(R.whole ? null : R.r, 'mic');
+  phase('edit'); renderHow(); paintLine(); update();
+}
+$('#stop').addEventListener('click', stopRec);
+$('#pcancel').addEventListener('click', () => { if (S.rec){ S.rec.active = false; clearTimeout(S.rec.to); } closeMic(); phase('edit'); });
+
+// ── what's visible follows the state ──
+function update(){
+  if (!S.clip || CLIPS[S.clip].long) return;
+  const g = $('#gen'), rs = $('#reset'), ch = changed(), empty = !tokens(S.text).length;
+  g.classList.toggle('show', ch || S.phase === 'gen'); rs.classList.toggle('show', ch || S.phase === 'gen');
+  g.closest('.actions').classList.toggle('idle', !(ch || S.phase === 'gen') && !(S.takes.length && S.takeKey === key()));
+  g.disabled = S.phase !== 'gen' && (S.offline || empty || stalePerf());
+  if (S.phase !== 'gen'){ label(g, 'Generate'); label(rs, 'Start over'); }
+  const note = $('#note');
+  if (empty){ note.hidden = false; note.textContent = 'The line is empty.'; }
+  else note.hidden = true;
+  const st = $('#seeTakes'), show = S.takes.length > 0 && S.phase === 'edit' && S.takeKey === key();
+  st.classList.toggle('show', show);
+  if (show) st.textContent = `${S.takes.length} take${S.takes.length > 1 ? 's' : ''} ready →`;
+}
+
+// ── generate ──
+function generate(again){
+  if (!changed() || S.offline || stalePerf() || !tokens(S.text).length || S.phase !== 'edit') return;
+  ta.blur(); stopPlay(); $('#err').hidden = true;
+  phase('gen');
+  const g = $('#gen'), d = again ? 1500 : 2200;
+  g.style.setProperty('--d', d + 'ms'); g.classList.remove('run'); void g.offsetWidth; g.classList.add('run');
+  label(g, 'Generating…'); label($('#reset'), 'Cancel');
+  // the text fills in as the take is built
+  const t0 = performance.now();
+  const sweep = now => { if (S.phase !== 'gen') return paintLine(); const p = Math.min(1, (now - t0) / d); paintLine([0, Math.floor(p * S.text.length)]); if (p < 1) requestAnimationFrame(sweep); };
+  requestAnimationFrame(sweep);
+  S.timer = setTimeout(() => {
+    g.classList.remove('run');
+    if (S.fail){ S.fail = false; $('[data-demo="fail"]').setAttribute('aria-pressed', 'false'); phase('edit'); paintLine(); $('#err').hidden = false; return; }
+    S.takes.push({text:S.text, voice:{...S.voice}, perfs:S.perfs.map(p => ({...p})), words:textChanged()});
+    S.cur = S.takes.length - 1; S.takeKey = key();
+    toReview();
+  }, d);
+}
+function cancelGen(){ clearTimeout(S.timer); $('#gen').classList.remove('run'); phase('edit'); paintLine(); }
+$('#gen').addEventListener('click', () => generate());
+$('#reset').addEventListener('click', () => {
+  if (S.phase === 'gen') return cancelGen();
+  stopPlay(); S.text = S.base; ta.value = S.text; S.voice = {kind:'orig'}; S.perfs = []; S.takes = []; renderAll();
+});
+$('#retry').addEventListener('click', () => generate());
+$('#seeTakes').addEventListener('click', toReview);
+
+// ── review: original vs new take; the text below follows whatever plays ──
+function describe(t){
+  const parts = [];
+  parts.push(t.voice.kind === 'orig' ? `${C().actor}'s voice` : `${t.voice.name}'s voice`);
+  const n = t.perfs.length, whole = t.perfs.some(p => p.whole);
+  if (n) parts.push(whole ? 'your performance' : `your performance on ${n} part${n > 1 ? 's' : ''}`);
+  if (t.words) parts.push('new words');
+  return parts.join(' · ');
+}
+function toReview(){
+  const t = S.takes[S.cur]; if (!t) return;
+  S.ear = 'B'; renderSrcs(); $('#rTime').textContent = fmt(C().dur);
+  paintReview();
+  label($('#send'), 'Send to track');
+  phase('review');
+}
+function renderSrcs(){
+  const one = S.takes.length === 1;
+  $('#srcs').innerHTML = `<button role="tab" data-src="A" class="${S.ear === 'A' ? 'cur' : ''}">Original</button>` +
+    S.takes.map((_, i) => `<button role="tab" data-t="${i}" class="${S.ear === 'B' && i === S.cur ? 'cur' : ''}">${one ? 'New take' : `Take ${i + 1}`}</button>`).join('');
+  $('#rcap').textContent = S.ear === 'A' ? `${C().actor} · as recorded` : describe(S.takes[S.cur]);
+  $('#rPlay').setAttribute('aria-label', S.ear === 'A' ? 'Play original' : 'Play take');
+}
+// switching source keeps the playhead, so you can A/B the same moment
+$('#srcs').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const P = S.play, at = P && (P.key === 'A' || P.key === 'B') ? Math.min(.99, (performance.now() - P.t0) / P.dur) : null;
+  if (b.dataset.src === 'A') S.ear = 'A'; else { S.ear = 'B'; S.cur = +b.dataset.t; }
+  stopPlay(); renderSrcs(); paintReview();
+  if (at != null) startPlay(S.ear, null, at);
+});
+function paintReview(sung, which){
+  const t = S.takes[S.cur]; if (!t) return;
+  which = which || S.ear;
+  const text = which === 'A' ? S.base : t.text;
+  $('#bd2').innerHTML = marks(text, {perfs: which === 'A' ? [] : t.perfs, sung, ins: which !== 'A'});
+  $('#bd2').classList.toggle('quiet', sung != null);
+}
+$('#rline').addEventListener('click', ev => {
+  if (S.phase !== 'review') return;
+  let node, o;
+  if (document.caretPositionFromPoint){ const p = document.caretPositionFromPoint(ev.clientX, ev.clientY); node = p?.offsetNode; o = p?.offset; }
+  else { const r = document.caretRangeFromPoint(ev.clientX, ev.clientY); node = r?.startContainer; o = r?.startOffset; }
+  const el = node && (node.nodeType === 3 ? node.parentElement : node); if (!el || el.dataset.o == null) return;
+  const k = S.ear, text = k === 'A' ? S.base : S.takes[S.cur].text;
+  let at = el.classList.contains('del') ? +el.dataset.o : +el.dataset.o + (o || 0);
+  while (at > 0 && /\S/.test(text[at - 1])) at--;          // start at the beginning of the word
+  stopPlay(); startPlay(k, null, at / text.length);
+});
+$('#rPlay').addEventListener('click', () => toggle(S.ear));
+$('#backB').addEventListener('click', () => { stopPlay(); phase('edit'); renderAll(); });
+$('#again').addEventListener('click', () => { stopPlay(); phase('edit'); generate(true); });
+$('#send').addEventListener('click', () => {
+  stopPlay(); label($('#send'), 'Sending…');
+  setTimeout(() => {
+    const el = $(`.clip[data-c="${S.clip}"]`); el.classList.add('done'); el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse');
+    $('#doneH').textContent = `${S.takes.length > 1 ? `Take ${S.cur + 1}` : 'New take'} sent to ${C().track}`;
+    phase('done');
+  }, 500);
+});
+$('#undo').addEventListener('click', () => { $(`.clip[data-c="${S.clip}"]`).classList.remove('done'); phase('review'); });
+
+// ── playback (simulated): karaoke on the text + level meter ──
+function toggle(k, perf){ if (S.play?.key === k) stopPlay(); else { stopPlay(); startPlay(k, perf); } }
+function startPlay(k, perf, from = 0){
+  const d = (perf ? perf.dur : C().dur) * 1000;
+  S.play = {key:k, perf, t0:performance.now() - from * d, dur:d, sim:new VoiceSim(k.length * 7 + S.pid)};
+  const u = ui(k); if (u.b) u.b.innerHTML = ICON.pause; if (u.m) u.m.classList.add('live'); if (u.card) u.card.classList.add('playing');
+  requestAnimationFrame(tickPlay);
+}
+function ui(k){
+  if (k === 'O') return {b:$('#playO'), m:$('#meterO'), t:$('#timeO')};
+  if (k === 'A' || k === 'B') return {b:$('#rPlay'), m:$('#rMeter'), t:$('#rTime')};
+  const i = S.perfs.findIndex(p => 'p' + p.id === k); return {b:$(`#perfs [data-play="${i}"]`)};
+}
+function stopPlay(){
+  const P = S.play; if (!P) return; S.play = null;
+  const u = ui(P.key);
+  if (u.b) u.b.innerHTML = ICON.play;
+  if (u.m) u.m.classList.remove('live');
+  if (u.t) u.t.textContent = fmt(C().dur);
+  if (u.card) u.card.classList.remove('playing');
+  if (P.key === 'A' || P.key === 'B') paintReview(); else paintLine();
+}
+function tickPlay(now){
+  const P = S.play; if (!P) return;
+  const p = Math.max(0, Math.min(1, (now - P.t0) / P.dur)), u = ui(P.key);
+  if (u.t) u.t.textContent = fmt(p * P.dur / 1000);
+  if (P.key === 'A' || P.key === 'B'){
+    const len = (P.key === 'A' ? S.base : S.takes[S.cur].text).length; paintReview([0, Math.floor(p * len)], P.key);
+  } else if (P.perf) paintLine([P.perf.s, P.perf.s + Math.floor(p * (P.perf.e - P.perf.s))]);
+  else paintLine([0, Math.floor(p * S.text.length)]);
+  if (u.m){ u.m.wave ||= new DotWave(u.m, {pitch:7, half:2}); u.m.wave.draw(P.sim.bands(u.m.wave.n, now, 1.15), 1); }
+  if (p >= 1) return stopPlay();
+  requestAnimationFrame(tickPlay);
+}
+$('#playO').addEventListener('click', () => toggle('O'));
+
+// ── popovers ──
+function closePops(){ $$('.pop').forEach(p => p.classList.remove('on')); $('#voiceChip').setAttribute('aria-expanded', 'false'); $('#helpBtn').setAttribute('aria-expanded', 'false'); $('#setBtn').setAttribute('aria-expanded', 'false'); }
+function openPop(sel, anchor){
+  const p = $(sel), on = !p.classList.contains('on'); closePops(); if (!on) return;
+  if (anchor && sel !== '#help' && sel !== '#settings'){
+    const pr = plugin.getBoundingClientRect(), ar = anchor.getBoundingClientRect();
+    p.style.left = Math.max(12, Math.min(pr.width - p.offsetWidth - 12, ar.left - pr.left)) + 'px';
+    p.style.top = (ar.bottom - pr.top + 6) + 'px'; p.style.right = 'auto'; p.style.transformOrigin = 'top left';
+  }
+  p.classList.add('on');
+}
+$('#helpBtn').addEventListener('click', ev => {
+  ev.stopPropagation();
+  $('#helpText').innerHTML = (S.clip && S.phase !== 'signin' ? '' : '<p><b>Select a line on your timeline</b> to start. SONA opens it here.</p>') + (S.phase === 'review'
+    ? '<p>Pick <b>Original</b> or a take and press play. Switching while it plays keeps the same moment, so you can compare. Click a word to play from there.</p><p><b>Another take</b> makes a fresh version; earlier takes stay next to it. <b>Send to track</b> replaces the clip with the take you picked; the original stays on an alternate playlist.</p><p class="keys">Space plays or pauses.</p>'
+    : '<p>SONA keeps the line and lets you change two things about it:</p><p><b>Who says it</b>: the voice, shown as the name above the line. Keep the actor, pick a voice from the library, or use a reference clip of someone else’s voice.</p><p><b>How it’s said</b>: the performance. Press <b>Perform</b> and act the line into your mic, the way it should sound: timing, emphasis, emotion. SONA keeps your performance, not your voice. Select part of the line first to perform only that part; you can perform several parts.</p><p>You can also <b>edit the words</b> directly in the line.</p><p class="keys">Space plays the original · Ctrl + Enter generates</p>');
+  $('#helpBtn').setAttribute('aria-expanded', 'true');
+  openPop('#help');
+});
+$('#setBtn').addEventListener('click', ev => {
+  ev.stopPropagation();
+  $('#acctState').textContent = S.signedout ? 'Signed out' : 'Signed in';
+  $('#signOut').textContent = S.signedout ? 'Sign in' : 'Sign out';
+  $('#setBtn').setAttribute('aria-expanded', 'true');
+  openPop('#settings');
+});
+$$('[data-mic]').forEach(b => b.addEventListener('click', () => $$('[data-mic]').forEach(x => x.setAttribute('aria-checked', x === b))));
+$('#optCount').addEventListener('click', () => { S.countIn = !S.countIn; $('#optCount').setAttribute('aria-checked', S.countIn); });
+$('#signOut').addEventListener('click', () => { closePops(); if (S.signedout) $('#signin').click(); else $('[data-demo="signedout"]').click(); });
+document.addEventListener('click', ev => { if (!ev.target.closest('.pop')) closePops(); });
+
+// ── timeline, confirm, demo states ──
+$$('.clip.dx').forEach(c => c.addEventListener('click', () => requestClip(c.dataset.c)));
+$('#keep').addEventListener('click', () => { S.pending = null; $('#confirm').classList.remove('on'); });
+$('#discard').addEventListener('click', () => loadClip(S.pending));
+$$('[data-demo]').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.demo, on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on);
+  if (k === 'offline'){ S.offline = on; $('#offline').classList.toggle('on', on); update(); }
+  if (k === 'fail') S.fail = on;
+  if (k === 'mic'){ S.mic = on; if (!on) $('#micErr').hidden = true; }
+  if (k === 'signedout'){ S.signedout = on; if (on){ S.back = ['gen','perform'].includes(S.phase) ? 'edit' : S.phase; stopPlay(); phase('signin'); } else phase(S.back); }
+}));
+$('#signin').addEventListener('click', () => {
+  label($('#signin'), 'Signing in…');
+  setTimeout(() => { S.signedout = false; $('[data-demo="signedout"]').setAttribute('aria-pressed', 'false'); label($('#signin'), 'Sign in');
+    if (S.queued){ const q = S.queued; S.queued = null; loadClip(q); } else phase(S.back === 'signin' ? 'empty' : S.back); }, 800);
+});
+
+// ── keyboard (documented only under "?") ──
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape'){ closePops(); $('#confirm').classList.remove('on'); if (S.phase === 'gen') cancelGen(); if (S.phase === 'perform') $('#pcancel').click(); return; }
+  if (ev.target === ta) return;
+  if (ev.key === ' ' && S.phase === 'perform'){ ev.preventDefault(); stopRec(); }
+  else if (ev.key === ' ' && S.phase === 'review'){ ev.preventDefault(); toggle(S.ear); }
+  else if (ev.key === ' ' && S.phase === 'edit'){ ev.preventDefault(); toggle('O'); }
+  if (S.phase === 'edit' && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) generate();
+});
+
+// ── floating window: move + resize ──
+const box = () => plugin.getBoundingClientRect();
+function place(x, y){ const b = box(); root.setProperty('--px', Math.round(Math.min(innerWidth - 80, Math.max(120 - b.width, x))) + 'px'); root.setProperty('--py', Math.round(Math.min(innerHeight - 48, Math.max(0, y))) + 'px'); }
+place(innerWidth - 400 - 32, 56);
+$('#grip').addEventListener('pointerdown', ev => {
+  ev.preventDefault(); ev.stopPropagation(); document.body.classList.add('resizing');
+  const b = box(), x0 = ev.clientX, y0 = ev.clientY;
+  const mv = e => root.setProperty('--pw', Math.min(640, Math.max(320, b.width + e.clientX - x0)) + 'px');
+  const up = () => { document.body.classList.remove('resizing'); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); paintLine(); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+$('#head').addEventListener('pointerdown', ev => {
+  if (ev.target.closest('button')) return;
+  ev.preventDefault(); plugin.classList.add('dragging'); document.body.classList.add('moving');
+  const b = box(), dx = ev.clientX - b.left, dy = ev.clientY - b.top;
+  const mv = e => place(e.clientX - dx, e.clientY - dy);
+  const up = () => { plugin.classList.remove('dragging'); document.body.classList.remove('moving'); removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+new ResizeObserver(() => { if (S.clip && S.phase === 'edit') ta.style.height = $('#bd').offsetHeight + 'px'; }).observe(plugin);
+
+// ── screenshot hook: #t=<state>&w=&h= ──
+const T = (location.hash.match(/t=(\w+)/) || [])[1];
+if (T){
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{transition-duration:0s!important;transition-delay:0s!important;animation-duration:0s!important;animation-delay:0s!important;animation-iteration-count:1!important}';
+  document.head.appendChild(st);
+  const w = +(location.hash.match(/w=(\d+)/) || [])[1], h = +(location.hash.match(/h=(\d+)/) || [])[1];
+  if (w){ root.setProperty('--pw', w + 'px'); place(innerWidth - w - 32, 56); } if (h) root.setProperty('--ph', h + 'px');
+  const sel = (s, l) => () => { ta.focus(); ta.setSelectionRange(s, s + l); readSel(); };
+  const P = {
+    edit:[() => loadClip('c1')],
+    select:[() => loadClip('c1'), sel(12, 24)],
+    voices:[() => loadClip('c1'), () => $('#voiceChip').click()],
+    voice:[() => loadClip('c1'), () => { S.voice = {kind:'lib', id:'mara', name:'Mara'}; renderWho(); update(); }],
+    import:[() => loadClip('c1'), () => $('#importBtn').click()],
+    count:[() => loadClip('c1'), () => $('#perform').click()],
+    perform:[() => loadClip('c1'), () => $('#perform').click(), null],
+    partperf:[() => loadClip('c5'), sel(117, 70), () => $('#perform').click(), null],
+    whole:[() => loadClip('c1'), () => $('#perform').click(), null, null, null],
+    parts:[() => loadClip('c1'), () => { addPerf({s:12, e:17, t:'about'}, 'mic'); addPerf({s:28, e:43, t:'meters ahead.'}, 'mic'); renderHow(); paintLine(); update(); }],
+    stale:[() => loadClip('c1'), () => { addPerf({s:12, e:36, t:'about one hundred meters'}, 'mic'); renderHow(); paintLine(); update(); }, () => { ta.value = S.text.replace('one hundred', 'twenty'); ta.dispatchEvent(new Event('input')); ta.blur(); }],
+    words:[() => loadClip('c1'), () => { ta.value = S.text.replace('one hundred', 'twenty'); ta.dispatchEvent(new Event('input')); ta.blur(); }],
+    combo:[() => loadClip('c1'), () => { S.voice = {kind:'lib', id:'mara', name:'Mara'}; addPerf({s:12, e:36, t:'about one hundred meters'}, 'mic'); renderAll(); }],
+    gen:[() => loadClip('c1'), () => { S.voice = {kind:'lib', id:'mara', name:'Mara'}; addPerf(null, 'mic'); renderAll(); }, () => generate()],
+    review:[() => loadClip('c1'), () => { S.voice = {kind:'lib', id:'mara', name:'Mara'}; addPerf({s:12, e:36, t:'about one hundred meters'}, 'mic'); renderAll(); }, () => generate(), null, () => startPlay('B')],
+    review5:[() => loadClip('c5'), () => { addPerf({s:117, e:200, t:S.text.slice(117,200)}, 'mic'); renderAll(); }, () => generate(), null, () => generate(true), null],
+    mic:[() => loadClip('c1'), () => $('[data-demo="mic"]').click(), () => $('#perform').click()],
+    help:[() => loadClip('c1'), () => $('#helpBtn').click()],
+    mono:[() => loadClip('c5')],
+    fail:[() => loadClip('c1'), () => { S.fail = true; addPerf(null, 'mic'); renderAll(); }, () => generate(), null],
+  }[T] || [];
+  let t = 0; P.forEach((f, i) => { t += i === 0 ? 0 : (f ? 700 : 2400); if (f) setTimeout(f, t); });
+}
+
+phase('empty');
+setTimeout(() => $$('.clip.dx').forEach((c, i) => setTimeout(() => c.classList.add('invite'), i * 120)), 600);
+})();
+</script>
+<script>
+// Each version also runs on its own local server (5174 = V1, 5176 = V2, 5178 = V3): point the switch there
+(function () {
+  if (!['5174', '5176', '5178'].includes(location.port)) return;
+  document.querySelectorAll('.proto-ver a').forEach(function (a) { a.href = location.protocol + '//' + location.hostname + ':' + a.dataset.port + '/'; });
+})();
+</script>
+</body>
+</html>
