@@ -11,5 +11,5 @@ Everything is in that one file; `brand/` holds the Inter Display fonts and the S
 Earlier rounds (v1–v5), the reference PNGs, `workflow.html` and `tools/` stay in the zip.
 
 ## Added here
-- **help** and **settings** links in the plugin header (as in V1/V2), always visible. Help explains the current step; with no line selected it starts with "Select a line on your timeline".
+- **Help** (?) and **Settings** (sliders) icon buttons in the plugin header, always visible; the button stays highlighted while its panel is open. Help explains the current step; with no line selected it starts with "Select a line on your timeline".
 - Settings: microphone choice (visual only), "Count in 3, 2, 1" (off = recording starts at once), studio account with Sign out / Sign in (same as the "Signed out" prototype state).
